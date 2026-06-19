@@ -3,595 +3,519 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DBZ RPG Card Game - v1</title>
+<title>DBZ RPG Card Game - v5</title>
 <style>
   /* --- GLOBAL STYLES --- */
   body {
-    background-color: #1a1a1a;
-    color: #fff;
+    background-color: #1a1a1a; color: #fff;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin: 0;
-    padding: 20px;
+    display: flex; flex-direction: column; align-items: center;
+    margin: 0; padding: 20px;
   }
 
   h2, h3 { margin: 10px 0; }
   
-  /* Version Watermark */
   #version-tag {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    background-color: #444;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 12px;
-    font-weight: bold;
-    color: #ffaa00;
+    position: fixed; top: 10px; right: 10px;
+    background-color: #444; padding: 5px 10px;
+    border-radius: 5px; font-size: 12px; font-weight: bold; color: #ffaa00;
   }
 
   /* --- RPG MAP ARENA --- */
   #map-arena {
-    background-color: #222;
-    padding: 20px;
-    border-radius: 10px;
-    margin-bottom: 20px;
-    width: 100%;
-    max-width: 600px;
-    text-align: center;
-    box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+    background-color: #222; padding: 20px; border-radius: 10px;
+    margin-bottom: 20px; width: 100%; max-width: 600px;
+    text-align: center; box-shadow: 0 8px 16px rgba(0,0,0,0.5);
   }
 
   #board-track {
-    display: flex;
-    gap: 8px;
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #111;
-    border-radius: 10px;
-    overflow-x: auto;
+    display: flex; gap: 8px; margin-top: 20px; padding: 15px;
+    background-color: #111; border-radius: 10px; overflow-x: auto;
   }
 
   .map-tile {
-    min-width: 50px;
-    height: 50px;
-    background-color: #3a3a3a;
-    border: 2px solid #555;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 20px;
-    position: relative;
+    min-width: 55px; height: 55px; background-color: #3a3a3a;
+    border: 2px solid #555; border-radius: 8px; display: flex;
+    align-items: center; justify-content: center; font-size: 22px; position: relative;
   }
 
   .tile-start { background-color: #2e7d32; border-color: #4caf50; } 
   .tile-boss { background-color: #c62828; border-color: #ef5350; }  
   .tile-encounter { border-color: #ff9800; background-color: #4e342e; } 
+  .tile-empty { border-color: #5c6bc0; background-color: #283593; } /* Event Tiles */
 
   .player-token {
-    position: absolute;
-    font-size: 32px;
-    text-shadow: 0 0 5px #fff;
-    animation: bounce 0.6s infinite alternate;
+    position: absolute; font-size: 36px; text-shadow: 0 0 5px #fff;
+    animation: bounce 0.6s infinite alternate; z-index: 10;
   }
 
-  @keyframes bounce {
-    from { transform: translateY(0px); }
-    to { transform: translateY(-8px); }
+  @keyframes bounce { from { transform: translateY(0px); } to { transform: translateY(-8px); } }
+
+  /* --- INVENTORY HUD --- */
+  #inventory-hud {
+    background-color: #333; border: 2px solid #777; border-radius: 8px;
+    padding: 10px 20px; margin-bottom: 15px; font-weight: bold; color: #32cd32;
+    display: flex; justify-content: space-between; align-items: center;
   }
+
+  .use-item-btn {
+    background-color: #32cd32; color: #000; border: none; padding: 8px 15px;
+    border-radius: 5px; font-weight: bold; cursor: pointer; display: none;
+  }
+  .use-item-btn:hover { background-color: #28a428; }
 
   /* --- COMBAT ARENA --- */
   #combat-arena {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background-color: #2a2a2a;
-    border: 3px solid #ffaa00;
-    padding: 20px;
-    border-radius: 10px;
-    margin-bottom: 30px;
-    width: 100%;
-    max-width: 600px;
-    box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column; align-items: center; background-color: #2a2a2a;
+    border: 3px solid #ffaa00; padding: 20px; border-radius: 10px; margin-bottom: 30px;
+    width: 100%; max-width: 600px; box-shadow: 0 8px 16px rgba(0,0,0,0.5);
   }
 
-  .fighter-stats {
-    width: 100%;
-    text-align: center;
-  }
+  .fighter-stats { width: 100%; text-align: center; }
 
   .health-bar-container {
-    width: 100%;
-    height: 25px;
-    background-color: #555;
-    border: 3px solid #111;
-    border-radius: 5px;
-    overflow: hidden;
-    margin-bottom: 5px;
+    width: 100%; height: 25px; background-color: #555; border: 3px solid #111;
+    border-radius: 5px; overflow: hidden; margin-bottom: 5px;
   }
 
-  .health-fill {
-    height: 100%;
-    width: 100%;
-    transition: width 0.4s ease-in-out;
-  }
+  .health-fill { height: 100%; width: 100%; transition: width 0.4s ease-in-out; }
   .player-color { background-color: #32cd32; }
   .enemy-color { background-color: #dc143c; }
 
-  /* --- CLASH ZONE --- */
-  #clash-zone {
-    display: flex;
-    align-items: center;
-    gap: 30px;
-    margin: 20px 0;
-  }
+  #clash-zone { display: flex; align-items: center; gap: 30px; margin: 20px 0; }
 
   .card-slot {
-    width: 120px;
-    height: 180px;
-    border: 2px dashed #777;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #111;
+    width: 120px; height: 180px; border: 2px dashed #777; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; background-color: #111;
   }
 
-  .vs-text {
-    font-size: 32px;
-    font-weight: bold;
-    color: #ffaa00;
-    text-shadow: 2px 2px #000;
+  .vs-text { font-size: 32px; font-weight: bold; color: #ffaa00; text-shadow: 2px 2px #000; }
+
+  #combat-log {
+    background-color: #111; border: 2px solid #555; border-radius: 5px;
+    padding: 10px 20px; width: 90%; text-align: center; font-weight: bold;
+    color: #ffcc00; margin-bottom: 15px; min-height: 40px;
+    display: flex; align-items: center; justify-content: center;
   }
 
   .placeholder-text { color: #555; font-weight: bold; }
 
   /* --- PLAYER HAND --- */
   .hand-container {
-    display: flex;
-    gap: 15px;
-    padding: 20px;
-    background-color: #222;
-    border-radius: 10px;
-    justify-content: center;
-    flex-wrap: wrap;
-    max-width: 800px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    display: flex; gap: 15px; padding: 20px; background-color: #222;
+    border-radius: 10px; justify-content: center; flex-wrap: wrap;
+    max-width: 800px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
   }
 
-  /* --- THE CARDS --- */
   .card {
-    width: 120px;
-    height: 180px;
-    background-color: #fdfdfd;
-    border: 3px solid #444;
-    border-radius: 8px;
-    position: relative;
-    cursor: pointer;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    transition: transform 0.2s ease-in-out, border-color 0.2s;
-    user-select: none;
+    width: 120px; height: 180px; background-color: #fdfdfd; border: 3px solid #444;
+    border-radius: 8px; position: relative; cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3); transition: transform 0.2s ease-in-out, border-color 0.2s; user-select: none;
   }
+  .card:hover { transform: translateY(-15px); border-color: #ff9900; }
 
-  .card:hover {
-    transform: translateY(-15px);
-    border-color: #ff9900;
+  .power, .guard {
+    position: absolute; display: flex; align-items: center; justify-content: center; font-weight: bold;
   }
-
   .power {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    background-color: #ffaa00;
-    color: #fff;
-    border: 2px solid #cc2200;
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
+    top: 8px; left: 8px; background-color: #ffaa00; color: #fff;
+    border: 2px solid #cc2200; border-radius: 50%; width: 28px; height: 28px;
   }
-
   .guard {
-    position: absolute;
-    bottom: 8px;
-    right: 8px;
-    background-color: #add8e6;
-    color: #000;
-    border: 2px solid #00008b;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: bold;
+    bottom: 8px; right: 8px; background-color: #add8e6; color: #000;
+    border: 2px solid #00008b; padding: 2px 6px; border-radius: 4px;
   }
-
   .action {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 40px;
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 40px;
   }
 
-  /* --- UTILITIES & OVERLAYS --- */
+  /* --- OVERLAYS --- */
   .hidden { display: none !important; }
 
   .overlay {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    background-color: rgba(0, 0, 0, 0.9);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background-color: rgba(0, 0, 0, 0.95); display: flex;
+    align-items: center; justify-content: center; z-index: 100;
   }
 
   .end-modal {
-    background-color: #222;
-    border: 4px solid #ffaa00;
-    padding: 40px;
-    border-radius: 10px;
-    text-align: center;
-    max-width: 400px;
+    background-color: #222; border: 4px solid #ffaa00; padding: 40px;
+    border-radius: 10px; text-align: center; max-width: 600px;
   }
 
   #end-title { font-size: 48px; margin-bottom: 10px; }
   
-  #restart-button {
-    margin-top: 20px;
-    padding: 15px 30px;
-    font-size: 20px;
-    font-weight: bold;
-    background-color: #ffaa00;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
+  .char-select-btn {
+    margin: 10px; padding: 15px 25px; font-size: 18px; font-weight: bold;
+    background-color: #333; color: white; border: 2px solid #777;
+    border-radius: 8px; cursor: pointer; transition: all 0.2s;
   }
-  #restart-button:hover { background-color: #cc8800; }
+  .char-select-btn:hover { border-color: #ffaa00; transform: scale(1.05); }
+
+  #restart-button {
+    margin-top: 20px; padding: 15px 30px; font-size: 20px; font-weight: bold;
+    background-color: #ffaa00; border: none; border-radius: 5px; cursor: pointer;
+  }
 </style>
 </head>
 <body>
 
-  <div id="version-tag">Version: 1</div>
+  <div id="version-tag">Version: 5</div>
 
-  <div id="map-arena">
-    <h2>Story Route: The Saiyan Arrival</h2>
-    <p style="color: #aaa;">Click a card below to move that many spaces!</p>
-    <div id="board-track">
+  <!-- CHARACTER SELECT -->
+  <div id="character-screen" class="overlay">
+    <div class="end-modal">
+      <h1 id="end-title" style="color: #ffaa00;">SELECT YOUR FIGHTER</h1>
+      <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+        <button class="char-select-btn" onclick="selectCharacter('Goku')">GOKU<br><small>Balanced Fighter</small></button>
+        <button class="char-select-btn" onclick="selectCharacter('Vegeta')">VEGETA<br><small>Aggressive (+1 Power)</small></button>
+        <button class="char-select-btn" onclick="selectCharacter('Gohan')">GOHAN<br><small>Defensive (+1 Guard)</small></button>
       </div>
+    </div>
   </div>
 
+  <!-- INVENTORY HUD -->
+  <div id="inventory-hud" class="hidden" style="width: 100%; max-width: 600px;">
+    <span>🎒 Bag: <span id="senzu-count">0</span> Senzu Bean(s)</span>
+    <button id="use-bean-btn" class="use-item-btn" onclick="useSenzuBean()">Use Bean (+50 HP)</button>
+  </div>
+
+  <!-- THE RPG MAP VIEW -->
+  <div id="map-arena" class="hidden">
+    <h2>Story Route: The Saiyan Arrival</h2>
+    <h3 id="map-player-level" style="color: #ffaa00;">Level: 1</h3>
+    <div id="board-track"></div>
+  </div>
+
+  <!-- EVENT POPUP MODAL -->
+  <div id="event-screen" class="overlay hidden">
+    <div class="end-modal" style="border-color: #5c6bc0;">
+      <h1 style="color: #5c6bc0;">MAP EVENT!</h1>
+      <p id="event-message" style="font-size: 20px;">You found something...</p>
+      <button id="restart-button" onclick="closeEventScreen()">Continue</button>
+    </div>
+  </div>
+
+  <!-- THE COMBAT ARENA VIEW -->
   <div id="combat-arena" class="hidden">
+    <div id="combat-log">A wild enemy appeared!</div>
+
     <div class="fighter-stats">
       <h3 id="enemy-name">Saibaman</h3>
-      <div class="health-bar-container">
-        <div id="enemy-health-fill" class="health-fill enemy-color"></div>
-      </div>
+      <div class="health-bar-container"><div id="enemy-health-fill" class="health-fill enemy-color"></div></div>
       <p>HP: <span id="enemy-hp-text">40 / 40</span></p>
     </div>
 
     <div id="clash-zone">
-      <div id="player-active-card" class="card-slot">
-        <p class="placeholder-text">Your Card</p>
-      </div>
+      <div id="player-active-card" class="card-slot"><p class="placeholder-text">Your Card</p></div>
       <div class="vs-text">VS</div>
-      <div id="enemy-active-card" class="card-slot">
-        <p class="placeholder-text">Enemy Card</p>
-      </div>
+      <div id="enemy-active-card" class="card-slot"><p class="placeholder-text">Enemy Card</p></div>
     </div>
 
     <div class="fighter-stats">
-      <h3>Goku (Player)</h3>
-      <div class="health-bar-container">
-        <div id="player-health-fill" class="health-fill player-color"></div>
-      </div>
+      <h3 id="combat-player-level">Player</h3>
+      <div class="health-bar-container"><div id="player-health-fill" class="health-fill player-color"></div></div>
       <p>HP: <span id="player-hp-text">100 / 100</span></p>
     </div>
   </div>
 
-  <h2>Your Hand</h2>
-  <div id="player-hand" class="hand-container">
-    </div>
+  <!-- PLAYER HAND -->
+  <h2 id="hand-title" class="hidden">Your Hand</h2>
+  <div id="player-hand" class="hand-container hidden"></div>
 
+  <!-- END SCREEN -->
   <div id="end-screen" class="overlay hidden">
     <div class="end-modal">
-      <h1 id="end-title">GAME OVER</h1>
+      <h1 id="end-title-result">GAME OVER</h1>
       <p id="end-message">Raditz has defeated you.</p>
-      <button id="restart-button" onclick="restartGame()">Play Again</button>
+      <button id="restart-button" onclick="showCharacterSelect()">Play Again</button>
     </div>
   </div>
 
 <script>
-  // --- VERSION MARKER ---
-  const GAME_VERSION = 1;
-  console.log(`%c DBZ Card RPG Loaded - Running Version ${GAME_VERSION} `, "background: #ffaa00; color: #000; font-weight: bold;");
-
-  const ACTION_ICONS = {
-    'melee': '👊',
-    'ki_blast': '💥',
-    'defend': '🛡️',
-    'recover': '💊',
-    'special': '✨'
-  };
+  const GAME_VERSION = 5;
+  const ACTION_ICONS = { 'melee': '👊', 'ki_blast': '💥', 'defend': '🛡️', 'recover': '💊', 'special': '✨' };
 
   class Card {
     constructor(id, power, guard, actionType) {
-      this.id = id; 
-      this.power = power; 
-      this.guard = guard; 
-      this.actionType = actionType; 
+      this.id = id; this.power = power; this.guard = guard; this.actionType = actionType; 
     }
     get displayPower() { return this.power === 8 ? 'Z' : this.power.toString(); }
     get displayGuard() { return this.guard === 8 ? 'Z' : this.guard.toString(); }
   }
 
-  // --- GAME SYSTEM STATE ---
-  let gameState = 'MAP'; // 'MAP' or 'COMBAT'
+  let gameState = 'MENU';
   let playerPosition = 0;
-  let playerStats = { hp: 100, maxHp: 100 };
+  let playerStats = { name: "Goku", level: 1, hp: 100, maxHp: 100, powerBonus: 0, guardBonus: 0, senzuBeans: 0 };
   let enemyStats = { hp: 40, maxHp: 40, name: "Saibaman" };
   let playerDeck = [];
   let playerHand = [];
 
-  // THE RPG ROADMAP
   const storyMap = [
-    { type: 'start' },
-    { type: 'empty' },
-    { type: 'encounter' },
-    { type: 'empty' },
-    { type: 'encounter' },
-    { type: 'empty' },
-    { type: 'encounter' },
-    { type: 'empty' },
-    { type: 'empty' },
-    { type: 'boss' } // Boss is at the 10th tile (index 9)
+    { type: 'start' }, { type: 'empty' }, { type: 'encounter' }, { type: 'empty' },
+    { type: 'encounter' }, { type: 'empty' }, { type: 'encounter' }, { type: 'empty' },
+    { type: 'empty' }, { type: 'boss' }
   ];
 
-  // --- DECK MANAGEMENT ---
-  function generateDeck() {
-    let deck = [];
-    let cardCounter = 1;
-    const actionDistribution = { 'melee': 15, 'ki_blast': 10, 'defend': 8, 'recover': 5, 'special': 2 };
-    const rollStat = () => Math.floor(Math.random() * 8) + 1;
+  function updateLog(message) { document.getElementById('combat-log').innerText = message; }
 
-    for (const [actionType, count] of Object.entries(actionDistribution)) {
+  function showCharacterSelect() {
+    gameState = 'MENU';
+    document.querySelectorAll('.hidden').forEach(el => el.classList.add('hidden')); // Reset UI
+    document.getElementById('end-screen').classList.add('hidden');
+    document.getElementById('character-screen').classList.remove('hidden');
+  }
+
+  function selectCharacter(charName) {
+    playerStats.name = charName;
+    playerStats.level = 1;
+    playerStats.senzuBeans = 0; // Reset inventory
+    
+    if (charName === 'Goku') {
+      playerStats.maxHp = 100; playerStats.powerBonus = 0; playerStats.guardBonus = 0;
+    } else if (charName === 'Vegeta') {
+      playerStats.maxHp = 80; playerStats.powerBonus = 1; playerStats.guardBonus = 0;
+    } else if (charName === 'Gohan') {
+      playerStats.maxHp = 120; playerStats.powerBonus = 0; playerStats.guardBonus = 1;
+    }
+    
+    playerStats.hp = playerStats.maxHp;
+    playerPosition = 0;
+    
+    document.getElementById('character-screen').classList.add('hidden');
+    document.getElementById('inventory-hud').classList.remove('hidden');
+    document.getElementById('hand-title').classList.remove('hidden');
+    document.getElementById('player-hand').classList.remove('hidden');
+    document.getElementById('map-arena').classList.remove('hidden');
+
+    playerDeck = generateDeck(); playerHand = []; 
+    dealInitialHand(); renderMap(); updateInventoryUI();
+  }
+
+  function generateDeck() {
+    let deck = []; let cardCounter = 1;
+    const dist = { 'melee': 15, 'ki_blast': 10, 'defend': 8, 'recover': 5, 'special': 2 };
+    for (const [action, count] of Object.entries(dist)) {
       for (let i = 0; i < count; i++) {
-        let id = `DBZ-${cardCounter.toString().padStart(3, '0')}`; 
-        deck.push(new Card(id, rollStat(), rollStat(), actionType));
+        deck.push(new Card(`DBZ-${cardCounter.toString().padStart(3, '0')}`, Math.floor(Math.random() * 8) + 1, Math.floor(Math.random() * 8) + 1, action));
         cardCounter++;
       }
     }
-    return shuffleDeck(deck);
-  }
-
-  function shuffleDeck(deckArray) {
-    for (let i = deckArray.length - 1; i > 0; i--) {
+    for (let i = deck.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [deckArray[i], deckArray[j]] = [deckArray[j], deckArray[i]]; 
+      [deck[i], deck[j]] = [deck[j], deck[i]]; 
     }
-    return deckArray;
+    return deck;
   }
 
   function dealInitialHand() {
-    for (let i = 0; i < 5; i++) { playerHand.push(playerDeck.pop()); }
+    for (let i = 0; i < 5; i++) playerHand.push(playerDeck.pop());
     renderHand();
   }
 
-  // --- UI ENGINE ---
+  // --- INVENTORY LOGIC ---
+  function updateInventoryUI() {
+    document.getElementById('senzu-count').innerText = playerStats.senzuBeans;
+    const useBtn = document.getElementById('use-bean-btn');
+    // Button only shows in combat if you have beans and aren't at full health
+    if (gameState === 'COMBAT' && playerStats.senzuBeans > 0 && playerStats.hp < playerStats.maxHp) {
+      useBtn.style.display = 'block';
+    } else {
+      useBtn.style.display = 'none';
+    }
+  }
+
+  function useSenzuBean() {
+    if (playerStats.senzuBeans > 0) {
+      playerStats.senzuBeans--;
+      playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + 50);
+      updateLog("You ate a Senzu Bean from your bag! (+50 HP)");
+      updateInventoryUI();
+      updateUI(null, null);
+    }
+  }
+
   function renderMap() {
     const track = document.getElementById('board-track');
     track.innerHTML = ''; 
-
-    storyMap.forEach((tile, index) => {
-      let tileDiv = document.createElement('div');
-      tileDiv.className = `map-tile tile-${tile.type}`;
-      
-      if (index === playerPosition) {
-        tileDiv.innerHTML = `<div class="player-token">🐉</div>`;
-      } else if (tile.type === 'boss') {
-        tileDiv.innerHTML = `👹`; 
-      } else if (tile.type === 'start') {
-        tileDiv.innerHTML = `🏠`; 
-      } else if (tile.type === 'encounter') {
-        tileDiv.innerHTML = `❗`;
-      }
-      
-      track.appendChild(tileDiv);
+    storyMap.forEach((tile, idx) => {
+      let div = document.createElement('div');
+      div.className = `map-tile tile-${tile.type}`;
+      if (idx === playerPosition) div.innerHTML += `<div class="player-token">🐉</div>`;
+      if (tile.type === 'boss') div.innerHTML += `👹`; 
+      else if (tile.type === 'start') div.innerHTML += `🏠`; 
+      else if (tile.type === 'encounter') div.innerHTML += `❗`;
+      else if (tile.type === 'empty') div.innerHTML += `?`; // Event marker
+      track.appendChild(div);
     });
+    document.getElementById('map-player-level').innerText = `${playerStats.name} Level: ${playerStats.level} (Atk +${playerStats.powerBonus} | Def +${playerStats.guardBonus})`;
   }
 
   function renderHand() {
-    const handContainer = document.getElementById('player-hand');
-    handContainer.innerHTML = ''; 
-
+    const container = document.getElementById('player-hand');
+    container.innerHTML = ''; 
     playerHand.forEach(card => {
-      const cardDiv = document.createElement('div');
-      cardDiv.className = 'card';
-      cardDiv.id = card.id; 
-      cardDiv.innerHTML = `
-        <div class="power">${card.displayPower}</div>
-        <div class="action">${ACTION_ICONS[card.actionType]}</div>
-        <div class="guard">${card.displayGuard}</div>
-      `;
-      
-      // CONTEXT AWARE CLICK LISTENER
-      cardDiv.addEventListener('click', () => {
-        if (gameState === 'MAP') {
-          movePlayerOnMap(card);
-        } else if (gameState === 'COMBAT') {
-          playCard(card);
-        }
+      const div = document.createElement('div');
+      div.className = 'card'; div.id = card.id; 
+      let pStr = card.displayPower;
+      if (playerStats.powerBonus > 0 && card.power !== 8) pStr = `${card.power}+${playerStats.powerBonus}`;
+      let gStr = card.displayGuard;
+      if (playerStats.guardBonus > 0 && card.guard !== 8) gStr = `${card.guard}+${playerStats.guardBonus}`;
+
+      div.innerHTML = `<div class="power">${pStr}</div><div class="action">${ACTION_ICONS[card.actionType]}</div><div class="guard">${gStr}</div>`;
+      div.addEventListener('click', () => {
+        if (gameState === 'MAP') movePlayerOnMap(card);
+        else if (gameState === 'COMBAT') playCard(card);
       });
-      handContainer.appendChild(cardDiv);
+      container.appendChild(div);
     });
   }
 
   function updateUI(playerCard, enemyCard) {
-    const playerHpPercent = Math.max(0, (playerStats.hp / playerStats.maxHp) * 100);
-    const enemyHpPercent = Math.max(0, (enemyStats.hp / enemyStats.maxHp) * 100);
-
-    document.getElementById('player-health-fill').style.width = `${playerHpPercent}%`;
-    document.getElementById('enemy-health-fill').style.width = `${enemyHpPercent}%`;
+    document.getElementById('player-health-fill').style.width = `${Math.max(0, (playerStats.hp / playerStats.maxHp) * 100)}%`;
+    document.getElementById('enemy-health-fill').style.width = `${Math.max(0, (enemyStats.hp / enemyStats.maxHp) * 100)}%`;
     document.getElementById('player-hp-text').innerText = `${playerStats.hp} / ${playerStats.maxHp}`;
     document.getElementById('enemy-hp-text').innerText = `${enemyStats.hp} / ${enemyStats.maxHp}`;
+    document.getElementById('combat-player-level').innerText = `${playerStats.name} (Lvl ${playerStats.level})`;
 
-    if (playerCard && enemyCard && playerCard.power !== '?') {
-      document.getElementById('player-active-card').innerHTML = `
-        <div class="card" style="margin: 0; cursor: default;">
-          <div class="power">${playerCard.power === 8 ? 'Z' : playerCard.power}</div>
-          <div class="action">${ACTION_ICONS[playerCard.actionType]}</div>
-          <div class="guard">${playerCard.guard === 8 ? 'Z' : playerCard.guard}</div>
-        </div>
-      `;
-      document.getElementById('enemy-active-card').innerHTML = `
-        <div class="card" style="margin: 0; cursor: default; border-color: #dc143c;">
-          <div class="power">${enemyCard.power === 8 ? 'Z' : enemyCard.power}</div>
-          <div class="action">${ACTION_ICONS[enemyCard.actionType]}</div>
-          <div class="guard">${enemyCard.guard === 8 ? 'Z' : enemyCard.guard}</div>
-        </div>
-      `;
+    if (playerCard && enemyCard) {
+      let pDisplay = playerCard.power === 8 ? 'Z' : (playerCard.power + playerStats.powerBonus);
+      let gDisplay = playerCard.guard === 8 ? 'Z' : (playerCard.guard + playerStats.guardBonus);
+      document.getElementById('player-active-card').innerHTML = `<div class="card" style="margin: 0; cursor: default;"><div class="power">${pDisplay}</div><div class="action">${ACTION_ICONS[playerCard.actionType]}</div><div class="guard">${gDisplay}</div></div>`;
+      document.getElementById('enemy-active-card').innerHTML = `<div class="card" style="margin: 0; cursor: default; border-color: #dc143c;"><div class="power">${enemyCard.displayPower}</div><div class="action">${ACTION_ICONS[enemyCard.actionType]}</div><div class="guard">${enemyCard.displayGuard}</div></div>`;
     }
   }
 
-  // --- RPG NAVIGATION LOOP ---
+  // --- RPG NAVIGATION & EVENTS ---
   function movePlayerOnMap(card) {
-    let spacesToMove = card.power;
-    playerPosition += spacesToMove;
-
-    if (playerPosition >= storyMap.length - 1) {
-      playerPosition = storyMap.length - 1; 
-    }
-
+    playerPosition = Math.min(storyMap.length - 1, playerPosition + card.power);
     renderMap();
     let currentTile = storyMap[playerPosition];
     
     if (currentTile.type === 'encounter') {
-      startCombat("Saibaman", 45); 
+      startCombat("Saibaman", 40 + (playerPosition * 10)); 
     } else if (currentTile.type === 'boss') {
-      startCombat("Raditz", 140); 
+      startCombat("Raditz", 180); 
+    } else if (currentTile.type === 'empty') {
+      triggerMapEvent(); // Fire random event!
     }
-
     replaceUsedCard(card);
   }
 
-  // --- SCENE TRANSITIONS ---
-  function startCombat(enemyName, enemyMaxHp) {
-    gameState = 'COMBAT';
-    enemyStats = { name: enemyName, hp: enemyMaxHp, maxHp: enemyMaxHp };
+  function triggerMapEvent() {
+    const roll = Math.random();
+    let msg = "";
+    if (roll < 0.4) {
+      msg = "You found a Senzu Bean hidden in the wasteland!";
+      playerStats.senzuBeans++;
+    } else if (roll < 0.7) {
+      msg = "You took a quick rest. Recovered 20 HP.";
+      playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + 20);
+    } else {
+      msg = "Gravity Chamber Malfunction! You took 15 damage but gained +1 Base Power permanently!";
+      playerStats.hp -= 15;
+      playerStats.powerBonus += 1;
+    }
     
-    document.getElementById('enemy-name').innerText = enemyName;
+    document.getElementById('event-message').innerText = msg;
+    document.getElementById('event-screen').classList.remove('hidden');
+    updateInventoryUI(); renderHand();
+    if (playerStats.hp <= 0) checkWinCondition(); // In case gravity kills you!
+  }
+
+  function closeEventScreen() {
+    document.getElementById('event-screen').classList.add('hidden');
+  }
+
+  function startCombat(name, maxHp) {
+    gameState = 'COMBAT';
+    enemyStats = { name: name, hp: maxHp, maxHp: maxHp };
+    document.getElementById('enemy-name').innerText = name;
     document.getElementById('map-arena').classList.add('hidden');
     document.getElementById('combat-arena').classList.remove('hidden');
-
+    updateLog(`You encountered ${name}! Select a card to fight.`);
     document.getElementById('player-active-card').innerHTML = '<p class="placeholder-text">Your Card</p>';
     document.getElementById('enemy-active-card').innerHTML = '<p class="placeholder-text">Enemy Card</p>';
-    updateUI({power: '?'}, {power: '?'});
+    updateUI(null, null); updateInventoryUI();
   }
 
   function endCombat() {
     gameState = 'MAP';
-    // Heal player slightly for survival reward
-    playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + 25);
-    
     document.getElementById('combat-arena').classList.add('hidden');
     document.getElementById('map-arena').classList.remove('hidden');
-    updateUI({power: '?'}, {power: '?'});
+    renderMap(); renderHand(); updateInventoryUI();
+  }
+
+  function handleLevelUp() {
+    playerStats.level += 1; playerStats.maxHp += 20; playerStats.hp = playerStats.maxHp; playerStats.powerBonus += 1; 
+    alert(`LEVEL UP! ${playerStats.name} grew to Level ${playerStats.level}! Max HP is now ${playerStats.maxHp}!`);
   }
 
   // --- COMBAT ENGINE ---
   function playCard(playerCard) {
-    let enemyCard = new Card("ENEMY-CARD", Math.floor(Math.random() * 8) + 1, Math.floor(Math.random() * 8) + 1, 'melee');
+    let enemyCard = new Card("ENEMY", Math.floor(Math.random() * 8) + 1, Math.floor(Math.random() * 8) + 1, 'melee');
+    let effectivePower = playerCard.power + playerStats.powerBonus;
+    let effectiveGuard = playerCard.guard + playerStats.guardBonus;
+    let logMsg = "";
 
-    if (playerCard.power > enemyCard.power) {
-      let damage = Math.max(1, playerCard.power - enemyCard.guard);
-      enemyStats.hp -= damage;
-    } else if (enemyCard.power > playerCard.power) {
-      let damage = Math.max(1, enemyCard.power - playerCard.guard);
-      playerStats.hp -= damage;
+    if (playerCard.actionType === 'defend') { effectiveGuard += 4; logMsg += "You block firmly! "; }
+    else if (playerCard.actionType === 'ki_blast') { effectivePower += 2; logMsg += "Ki Blast powers up! "; }
+    else if (playerCard.actionType === 'recover') {
+      let heal = playerCard.power * 5; playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + heal);
+      logMsg = `You healed ${heal} HP! `;
     }
 
-    updateUI(playerCard, enemyCard);
-
-    if (!checkWinCondition()) {
-      replaceUsedCard(playerCard);
+    if (playerCard.actionType === 'recover') {
+      let damage = Math.max(1, enemyCard.power - effectiveGuard); playerStats.hp -= damage;
+      logMsg += `Enemy hits for ${damage} while you heal!`;
+    } else {
+      if (effectivePower > enemyCard.power) {
+        let damage = Math.max(1, effectivePower - enemyCard.guard);
+        if (playerCard.actionType === 'special') {
+          if (playerStats.name === 'Goku') { damage += 10; logMsg += "KAMEHAMEHA! "; }
+          else if (playerStats.name === 'Vegeta') { damage += 15; playerStats.hp -= 5; logMsg += "FINAL FLASH! "; }
+          else if (playerStats.name === 'Gohan') { playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + 10); logMsg += "MASENKO! "; }
+        }
+        enemyStats.hp -= damage; logMsg += `You deal ${damage} damage!`;
+      } else if (enemyCard.power > effectivePower) {
+        let damage = Math.max(1, enemyCard.power - effectiveGuard); playerStats.hp -= damage; logMsg += `You take ${damage} damage.`;
+      } else { logMsg += "It's a tie!"; }
     }
+
+    updateLog(logMsg); updateUI(playerCard, enemyCard); updateInventoryUI();
+    if (!checkWinCondition()) replaceUsedCard(playerCard);
   }
 
   function replaceUsedCard(usedCard) {
     playerHand = playerHand.filter(card => card.id !== usedCard.id);
-    if (playerDeck.length > 0) {
-      playerHand.push(playerDeck.pop());
-    } else {
-      playerDeck = generateDeck(); 
-      playerHand.push(playerDeck.pop());
-    }
-    renderHand();
+    if (playerDeck.length === 0) playerDeck = generateDeck(); 
+    playerHand.push(playerDeck.pop()); renderHand();
   }
 
-  // --- WIN/LOSS STATES ---
   function checkWinCondition() {
-    if (playerStats.hp <= 0) {
-      playerStats.hp = 0;
-      showEndScreen(false);
-      return true;
-    }
+    if (playerStats.hp <= 0) { playerStats.hp = 0; showEndScreenResult(false); return true; }
     if (enemyStats.hp <= 0) {
       enemyStats.hp = 0;
-      if (storyMap[playerPosition].type === 'boss') {
-        showEndScreen(true);
-      } else {
-        endCombat();
-      }
+      if (storyMap[playerPosition].type === 'boss') showEndScreenResult(true);
+      else { handleLevelUp(); endCombat(); }
       return true;
     }
     return false;
   }
 
-  function showEndScreen(isVictory) {
+  function showEndScreenResult(isVictory) {
     const endScreen = document.getElementById('end-screen');
-    const endTitle = document.getElementById('end-title');
+    const endTitle = document.getElementById('end-title-result');
     const endMessage = document.getElementById('end-message');
-
     if (isVictory) {
-      endTitle.innerText = "VICTORY!";
-      endTitle.style.color = "#32cd32";
-      endMessage.innerText = "You defeated Raditz and saved the Earth from the Saiyan threat!";
+      endTitle.innerText = "VICTORY!"; endTitle.style.color = "#32cd32";
+      endMessage.innerText = `You defeated Raditz as ${playerStats.name}!`;
     } else {
-      endTitle.innerText = "GAME OVER";
-      endTitle.style.color = "#dc143c";
-      endMessage.innerText = "Goku fell in battle. The Earth has been devastated.";
+      endTitle.innerText = "GAME OVER"; endTitle.style.color = "#dc143c";
+      endMessage.innerText = `${playerStats.name} fell in battle.`;
     }
     endScreen.classList.remove('hidden');
   }
-
-  function restartGame() {
-    gameState = 'MAP';
-    playerPosition = 0;
-    playerStats.hp = playerStats.maxHp;
-    
-    document.getElementById('end-screen').classList.add('hidden');
-    document.getElementById('combat-arena').classList.add('hidden');
-    document.getElementById('map-arena').classList.remove('hidden');
-    
-    document.getElementById('player-active-card').innerHTML = '<p class="placeholder-text">Your Card</p>';
-    document.getElementById('enemy-active-card').innerHTML = '<p class="placeholder-text">Enemy Card</p>';
-
-    renderMap();
-    updateUI({power: '?'}, {power: '?'});
-
-    playerDeck = generateDeck();
-    playerHand = [];
-    dealInitialHand();
-  }
-
-  // START GAME AT v1
-  restartGame();
 </script>
 </body>
 </html>
