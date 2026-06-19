@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DBZ Card Battler</title>
+<title>DBZ RPG Card Game - v1</title>
 <style>
   /* --- GLOBAL STYLES --- */
   body {
@@ -18,13 +18,79 @@
   }
 
   h2, h3 { margin: 10px 0; }
+  
+  /* Version Watermark */
+  #version-tag {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background-color: #444;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #ffaa00;
+  }
+
+  /* --- RPG MAP ARENA --- */
+  #map-arena {
+    background-color: #222;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 600px;
+    text-align: center;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+  }
+
+  #board-track {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #111;
+    border-radius: 10px;
+    overflow-x: auto;
+  }
+
+  .map-tile {
+    min-width: 50px;
+    height: 50px;
+    background-color: #3a3a3a;
+    border: 2px solid #555;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 20px;
+    position: relative;
+  }
+
+  .tile-start { background-color: #2e7d32; border-color: #4caf50; } 
+  .tile-boss { background-color: #c62828; border-color: #ef5350; }  
+  .tile-encounter { border-color: #ff9800; background-color: #4e342e; } 
+
+  .player-token {
+    position: absolute;
+    font-size: 32px;
+    text-shadow: 0 0 5px #fff;
+    animation: bounce 0.6s infinite alternate;
+  }
+
+  @keyframes bounce {
+    from { transform: translateY(0px); }
+    to { transform: translateY(-8px); }
+  }
 
   /* --- COMBAT ARENA --- */
   #combat-arena {
     display: flex;
     flex-direction: column;
     align-items: center;
-    background-color: #333;
+    background-color: #2a2a2a;
+    border: 3px solid #ffaa00;
     padding: 20px;
     border-radius: 10px;
     margin-bottom: 30px;
@@ -72,7 +138,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #222;
+    background-color: #111;
   }
 
   .vs-text {
@@ -82,7 +148,7 @@
     text-shadow: 2px 2px #000;
   }
 
-  .placeholder-text { color: #666; font-weight: bold; }
+  .placeholder-text { color: #555; font-weight: bold; }
 
   /* --- PLAYER HAND --- */
   .hand-container {
@@ -152,14 +218,14 @@
     font-size: 40px;
   }
 
-  /* --- END SCREEN OVERLAY --- */
+  /* --- UTILITIES & OVERLAYS --- */
   .hidden { display: none !important; }
 
   .overlay {
     position: fixed;
     top: 0; left: 0;
     width: 100vw; height: 100vh;
-    background-color: rgba(0, 0, 0, 0.85);
+    background-color: rgba(0, 0, 0, 0.9);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -168,10 +234,11 @@
 
   .end-modal {
     background-color: #222;
-    border: 4px solid #555;
+    border: 4px solid #ffaa00;
     padding: 40px;
     border-radius: 10px;
     text-align: center;
+    max-width: 400px;
   }
 
   #end-title { font-size: 48px; margin-bottom: 10px; }
@@ -191,13 +258,22 @@
 </head>
 <body>
 
-  <div id="combat-arena">
+  <div id="version-tag">Version: 1</div>
+
+  <div id="map-arena">
+    <h2>Story Route: The Saiyan Arrival</h2>
+    <p style="color: #aaa;">Click a card below to move that many spaces!</p>
+    <div id="board-track">
+      </div>
+  </div>
+
+  <div id="combat-arena" class="hidden">
     <div class="fighter-stats">
-      <h3 id="enemy-name">Raditz</h3>
+      <h3 id="enemy-name">Saibaman</h3>
       <div class="health-bar-container">
         <div id="enemy-health-fill" class="health-fill enemy-color"></div>
       </div>
-      <p>HP: <span id="enemy-hp-text">80 / 80</span></p>
+      <p>HP: <span id="enemy-hp-text">40 / 40</span></p>
     </div>
 
     <div id="clash-zone">
@@ -227,12 +303,15 @@
     <div class="end-modal">
       <h1 id="end-title">GAME OVER</h1>
       <p id="end-message">Raditz has defeated you.</p>
-      <button id="restart-button" onclick="restartGame()">Try Again</button>
+      <button id="restart-button" onclick="restartGame()">Play Again</button>
     </div>
   </div>
 
 <script>
-  // --- 1. CORE DATA STRUCTURES ---
+  // --- VERSION MARKER ---
+  const GAME_VERSION = 1;
+  console.log(`%c DBZ Card RPG Loaded - Running Version ${GAME_VERSION} `, "background: #ffaa00; color: #000; font-weight: bold;");
+
   const ACTION_ICONS = {
     'melee': '👊',
     'ki_blast': '💥',
@@ -252,13 +331,29 @@
     get displayGuard() { return this.guard === 8 ? 'Z' : this.guard.toString(); }
   }
 
-  // GAME STATE
+  // --- GAME SYSTEM STATE ---
+  let gameState = 'MAP'; // 'MAP' or 'COMBAT'
+  let playerPosition = 0;
   let playerStats = { hp: 100, maxHp: 100 };
-  let enemyStats = { hp: 80, maxHp: 80, name: "Raditz" };
+  let enemyStats = { hp: 40, maxHp: 40, name: "Saibaman" };
   let playerDeck = [];
   let playerHand = [];
 
-  // --- 2. DECK MANAGEMENT ---
+  // THE RPG ROADMAP
+  const storyMap = [
+    { type: 'start' },
+    { type: 'empty' },
+    { type: 'encounter' },
+    { type: 'empty' },
+    { type: 'encounter' },
+    { type: 'empty' },
+    { type: 'encounter' },
+    { type: 'empty' },
+    { type: 'empty' },
+    { type: 'boss' } // Boss is at the 10th tile (index 9)
+  ];
+
+  // --- DECK MANAGEMENT ---
   function generateDeck() {
     let deck = [];
     let cardCounter = 1;
@@ -288,7 +383,29 @@
     renderHand();
   }
 
-  // --- 3. UI RENDERING ---
+  // --- UI ENGINE ---
+  function renderMap() {
+    const track = document.getElementById('board-track');
+    track.innerHTML = ''; 
+
+    storyMap.forEach((tile, index) => {
+      let tileDiv = document.createElement('div');
+      tileDiv.className = `map-tile tile-${tile.type}`;
+      
+      if (index === playerPosition) {
+        tileDiv.innerHTML = `<div class="player-token">🐉</div>`;
+      } else if (tile.type === 'boss') {
+        tileDiv.innerHTML = `👹`; 
+      } else if (tile.type === 'start') {
+        tileDiv.innerHTML = `🏠`; 
+      } else if (tile.type === 'encounter') {
+        tileDiv.innerHTML = `❗`;
+      }
+      
+      track.appendChild(tileDiv);
+    });
+  }
+
   function renderHand() {
     const handContainer = document.getElementById('player-hand');
     handContainer.innerHTML = ''; 
@@ -302,13 +419,20 @@
         <div class="action">${ACTION_ICONS[card.actionType]}</div>
         <div class="guard">${card.displayGuard}</div>
       `;
-      cardDiv.addEventListener('click', () => playCard(card));
+      
+      // CONTEXT AWARE CLICK LISTENER
+      cardDiv.addEventListener('click', () => {
+        if (gameState === 'MAP') {
+          movePlayerOnMap(card);
+        } else if (gameState === 'COMBAT') {
+          playCard(card);
+        }
+      });
       handContainer.appendChild(cardDiv);
     });
   }
 
   function updateUI(playerCard, enemyCard) {
-    // Update Health Bars
     const playerHpPercent = Math.max(0, (playerStats.hp / playerStats.maxHp) * 100);
     const enemyHpPercent = Math.max(0, (enemyStats.hp / enemyStats.maxHp) * 100);
 
@@ -317,7 +441,6 @@
     document.getElementById('player-hp-text').innerText = `${playerStats.hp} / ${playerStats.maxHp}`;
     document.getElementById('enemy-hp-text').innerText = `${enemyStats.hp} / ${enemyStats.maxHp}`;
 
-    // Update Clash Zone visually, handling the dummy reset cards nicely
     if (playerCard && enemyCard && playerCard.power !== '?') {
       document.getElementById('player-active-card').innerHTML = `
         <div class="card" style="margin: 0; cursor: default;">
@@ -336,12 +459,55 @@
     }
   }
 
-  // --- 4. COMBAT ENGINE ---
-  function playCard(playerCard) {
-    // Generate random enemy card
-    let enemyCard = new Card("ENEMY-1", Math.floor(Math.random() * 8) + 1, Math.floor(Math.random() * 8) + 1, 'melee');
+  // --- RPG NAVIGATION LOOP ---
+  function movePlayerOnMap(card) {
+    let spacesToMove = card.power;
+    playerPosition += spacesToMove;
 
-    // Resolve Clash
+    if (playerPosition >= storyMap.length - 1) {
+      playerPosition = storyMap.length - 1; 
+    }
+
+    renderMap();
+    let currentTile = storyMap[playerPosition];
+    
+    if (currentTile.type === 'encounter') {
+      startCombat("Saibaman", 45); 
+    } else if (currentTile.type === 'boss') {
+      startCombat("Raditz", 140); 
+    }
+
+    replaceUsedCard(card);
+  }
+
+  // --- SCENE TRANSITIONS ---
+  function startCombat(enemyName, enemyMaxHp) {
+    gameState = 'COMBAT';
+    enemyStats = { name: enemyName, hp: enemyMaxHp, maxHp: enemyMaxHp };
+    
+    document.getElementById('enemy-name').innerText = enemyName;
+    document.getElementById('map-arena').classList.add('hidden');
+    document.getElementById('combat-arena').classList.remove('hidden');
+
+    document.getElementById('player-active-card').innerHTML = '<p class="placeholder-text">Your Card</p>';
+    document.getElementById('enemy-active-card').innerHTML = '<p class="placeholder-text">Enemy Card</p>';
+    updateUI({power: '?'}, {power: '?'});
+  }
+
+  function endCombat() {
+    gameState = 'MAP';
+    // Heal player slightly for survival reward
+    playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + 25);
+    
+    document.getElementById('combat-arena').classList.add('hidden');
+    document.getElementById('map-arena').classList.remove('hidden');
+    updateUI({power: '?'}, {power: '?'});
+  }
+
+  // --- COMBAT ENGINE ---
+  function playCard(playerCard) {
+    let enemyCard = new Card("ENEMY-CARD", Math.floor(Math.random() * 8) + 1, Math.floor(Math.random() * 8) + 1, 'melee');
+
     if (playerCard.power > enemyCard.power) {
       let damage = Math.max(1, playerCard.power - enemyCard.guard);
       enemyStats.hp -= damage;
@@ -350,10 +516,8 @@
       playerStats.hp -= damage;
     }
 
-    // Update Visuals
     updateUI(playerCard, enemyCard);
 
-    // Check for Win/Loss
     if (!checkWinCondition()) {
       replaceUsedCard(playerCard);
     }
@@ -364,13 +528,13 @@
     if (playerDeck.length > 0) {
       playerHand.push(playerDeck.pop());
     } else {
-      playerDeck = generateDeck(); // Auto-reshuffle if deck is empty
+      playerDeck = generateDeck(); 
       playerHand.push(playerDeck.pop());
     }
     renderHand();
   }
 
-  // --- 5. END GAME LOGIC ---
+  // --- WIN/LOSS STATES ---
   function checkWinCondition() {
     if (playerStats.hp <= 0) {
       playerStats.hp = 0;
@@ -379,7 +543,11 @@
     }
     if (enemyStats.hp <= 0) {
       enemyStats.hp = 0;
-      showEndScreen(true);
+      if (storyMap[playerPosition].type === 'boss') {
+        showEndScreen(true);
+      } else {
+        endCombat();
+      }
       return true;
     }
     return false;
@@ -393,34 +561,37 @@
     if (isVictory) {
       endTitle.innerText = "VICTORY!";
       endTitle.style.color = "#32cd32";
-      endMessage.innerText = "You defeated Raditz and saved the Earth!";
+      endMessage.innerText = "You defeated Raditz and saved the Earth from the Saiyan threat!";
     } else {
       endTitle.innerText = "GAME OVER";
       endTitle.style.color = "#dc143c";
-      endMessage.innerText = "You were defeated. The Earth is doomed.";
+      endMessage.innerText = "Goku fell in battle. The Earth has been devastated.";
     }
     endScreen.classList.remove('hidden');
   }
 
   function restartGame() {
+    gameState = 'MAP';
+    playerPosition = 0;
     playerStats.hp = playerStats.maxHp;
-    enemyStats.hp = enemyStats.maxHp;
     
     document.getElementById('end-screen').classList.add('hidden');
+    document.getElementById('combat-arena').classList.add('hidden');
+    document.getElementById('map-arena').classList.remove('hidden');
+    
     document.getElementById('player-active-card').innerHTML = '<p class="placeholder-text">Your Card</p>';
     document.getElementById('enemy-active-card').innerHTML = '<p class="placeholder-text">Enemy Card</p>';
 
-    // Initial dummy objects just to reset the health bar UI
-    updateUI({power: '?'}, {power: '?'}); 
+    renderMap();
+    updateUI({power: '?'}, {power: '?'});
 
     playerDeck = generateDeck();
     playerHand = [];
     dealInitialHand();
   }
 
-  // --- INITIALIZE GAME ---
+  // START GAME AT v1
   restartGame();
-
 </script>
 </body>
 </html>
