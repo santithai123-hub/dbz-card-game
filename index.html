@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DBZ RPG Card Game - v6</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/1.4.11/Tone.js"></script>
+<title>DBZ RPG Card Game - v7</title>
+<!-- Fixed the broken Tone.js version to the modern 14.8.49 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 <style>
   :root {
     --primary: #ffaa00;
@@ -49,6 +50,12 @@
     box-shadow: 0 0 20px rgba(255, 170, 0, 0.3);
   }
 
+  .title-cover-img {
+    width: 250px; border-radius: 8px; border: 3px solid var(--primary);
+    box-shadow: 0 0 15px rgba(255, 170, 0, 0.5); margin-bottom: 20px;
+    background-color: #000;
+  }
+
   .btn {
     margin-top: 20px; padding: 15px 30px; font-size: 20px; font-weight: bold;
     background-color: var(--primary); border: none; border-radius: 5px; 
@@ -69,15 +76,22 @@
   .portrait {
     width: 120px; height: 120px; border-radius: 8px; border: 2px solid #000;
     margin-bottom: 10px; object-fit: cover; background-color: #000;
+    background-position: center;
   }
   
   .combat-portrait {
     width: 100px; height: 100px; border-radius: 50%; border: 3px solid #777;
     margin-bottom: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.5);
-    transition: all 0.3s ease;
+    transition: all 0.3s ease; object-fit: cover; background-color: #111;
+    object-position: center top;
   }
-  .boss-enraged { border-color: var(--hp-red); box-shadow: 0 0 15px var(--hp-red); }
+  .boss-enraged { 
+    border-color: var(--hp-red); 
+    box-shadow: 0 0 20px var(--hp-red);
+    filter: drop-shadow(0 0 10px red) sepia(0.5) hue-rotate(-50deg) saturate(2); 
+  }
 
+  /* --- MAP UI --- */
   #map-arena {
     background-color: var(--panel-bg); padding: 20px; border-radius: 10px;
     margin-bottom: 20px; width: 100%; max-width: 800px;
@@ -125,6 +139,7 @@
   }
   .use-item-btn:hover { background-color: #28a428; }
 
+  /* --- COMBAT UI --- */
   #combat-arena {
     display: flex; flex-direction: column; align-items: center; background-color: #2a2a2a;
     border: 3px solid var(--primary); padding: 20px; border-radius: 10px; margin-bottom: 30px;
@@ -201,23 +216,34 @@
 </head>
 <body>
 
-  <div id="version-tag">Version: 6</div>
+  <div id="version-tag">Version: 7</div>
 
-  <div id="character-screen" class="overlay">
+  <!-- NEW TITLE SCREEN -->
+  <div id="title-screen" class="overlay">
+    <div class="end-modal">
+      <img src="https://upload.wikimedia.org/wikipedia/en/c/c4/Dragon_Ball_Z_vol_1.jpg" alt="DBZ Manga Cover" class="title-cover-img" onerror="this.src='https://placehold.co/250x350/111/ffaa00?text=Dragon+Ball+Z'">
+      <h1 style="color: var(--primary); text-shadow: 2px 2px #000; margin: 0; font-size: 40px;">DRAGON BALL Z</h1>
+      <h2 style="color: #fff; margin-top: 5px; font-weight: normal; font-size: 22px;">Harukanaru Goku Densetsu</h2>
+      <button class="btn" onclick="showCharacterSelectFromTitle()">START GAME</button>
+    </div>
+  </div>
+
+  <!-- CHARACTER SELECTION -->
+  <div id="character-screen" class="overlay hidden">
     <div class="end-modal">
       <h1 style="color: var(--primary);">SELECT YOUR FIGHTER</h1>
-      <p>Clicking a character will enable audio and start the game.</p>
+      <p>Clicking a character will start your journey.</p>
       <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
         <button class="char-select-btn" onclick="selectCharacter('Goku')">
-          <img src="https://placehold.co/150x150/ffaa00/000?text=Goku" alt="Goku" class="portrait">
+          <img src="https://upload.wikimedia.org/wikipedia/en/3/3c/Goku_manga_profile.png" onerror="this.src='https://placehold.co/150x150/ffaa00/000?text=Goku'" alt="Goku" class="portrait">
           GOKU<br><small>Balanced (+10 Spec)</small>
         </button>
         <button class="char-select-btn" onclick="selectCharacter('Vegeta')">
-          <img src="https://placehold.co/150x150/2244cc/fff?text=Vegeta" alt="Vegeta" class="portrait">
+          <img src="https://upload.wikimedia.org/wikipedia/en/f/f6/Vegeta_manga_profile.png" onerror="this.src='https://placehold.co/150x150/2244cc/fff?text=Vegeta'" alt="Vegeta" class="portrait">
           VEGETA<br><small>Aggressive (+1 Power)</small>
         </button>
         <button class="char-select-btn" onclick="selectCharacter('Gohan')">
-          <img src="https://placehold.co/150x150/5522aa/fff?text=Gohan" alt="Gohan" class="portrait">
+          <img src="https://upload.wikimedia.org/wikipedia/en/9/91/Gohan_manga_profile.png" onerror="this.src='https://placehold.co/150x150/5522aa/fff?text=Gohan'" alt="Gohan" class="portrait">
           GOHAN<br><small>Defensive (+1 Guard)</small>
         </button>
       </div>
@@ -236,6 +262,7 @@
     <div id="board-track"></div>
   </div>
 
+  <!-- IN-GAME EVENT MODAL -->
   <div id="event-screen" class="overlay hidden">
     <div class="end-modal" style="border-color: #5c6bc0;">
       <h1 id="event-title" style="color: #5c6bc0;">MESSAGE</h1>
@@ -244,6 +271,7 @@
     </div>
   </div>
 
+  <!-- COMBAT ARENA -->
   <div id="combat-arena" class="hidden">
     <div id="combat-log">A wild enemy appeared!</div>
 
@@ -278,31 +306,32 @@
   <h2 id="hand-title" class="hidden">Your Hand</h2>
   <div id="player-hand" class="hand-container hidden"></div>
 
+  <!-- GAME OVER / VICTORY OVERLAY -->
   <div id="end-screen" class="overlay hidden">
     <div class="end-modal">
       <h1 id="end-title-result">GAME OVER</h1>
       <p id="end-message">Raditz has defeated you.</p>
-      <button class="btn" onclick="showCharacterSelect()">Play Again</button>
+      <button class="btn" onclick="showTitleScreen()">Return to Menu</button>
     </div>
   </div>
 
 <script>
-  const GAME_VERSION = 6;
+  const GAME_VERSION = 7;
   console.log(`%c DBZ Card RPG Loaded - Running Version ${GAME_VERSION} `, "background: #ffaa00; color: #000; font-weight: bold;");
 
   const ACTION_ICONS = { 'melee': '👊', 'ki_blast': '💥', 'defend': '🛡️', 'recover': '💊', 'special': '✨' };
   
-  // Image placeholders
+  // Real Manga/Anime Portraits with fallback safety
   const PORTRAITS = {
-    'Goku': 'https://placehold.co/150x150/ff9900/000?text=Goku',
-    'Vegeta': 'https://placehold.co/150x150/2244cc/fff?text=Vegeta',
-    'Gohan': 'https://placehold.co/150x150/5522aa/fff?text=Gohan',
-    'Saibaman': 'https://placehold.co/150x150/228B22/fff?text=Saibaman',
-    'Raditz': 'https://placehold.co/150x150/000000/fff?text=Raditz',
-    'RaditzStage2': 'https://placehold.co/150x150/8B0000/fff?text=Enraged+Raditz'
+    'Goku': 'https://upload.wikimedia.org/wikipedia/en/3/3c/Goku_manga_profile.png',
+    'Vegeta': 'https://upload.wikimedia.org/wikipedia/en/f/f6/Vegeta_manga_profile.png',
+    'Gohan': 'https://upload.wikimedia.org/wikipedia/en/9/91/Gohan_manga_profile.png',
+    'Saibaman': 'https://static.wikia.nocookie.net/dragonball/images/3/30/Saibamen.png/revision/latest',
+    'Raditz': 'https://upload.wikimedia.org/wikipedia/en/thumb/4/4c/Raditz.png/220px-Raditz.png',
+    'RaditzStage2': 'https://upload.wikimedia.org/wikipedia/en/thumb/4/4c/Raditz.png/220px-Raditz.png'
   };
 
-  // Sound Engine Object using Tone.js
+  // Fixed Sound Engine using modern Tone.js syntax safely wrapped
   const SFX = {
     initialized: false,
     synth: null,
@@ -310,12 +339,15 @@
     
     init: async function() {
       if(this.initialized) return;
-      await Tone.start();
-      this.synth = new Tone.PolySynth(Tone.Synth).toDestination();
-      this.synth.set({ envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.1 }});
-      
-      this.memSynth = new Tone.MembraneSynth().toDestination();
-      this.initialized = true;
+      try {
+        await Tone.start();
+        this.synth = new Tone.PolySynth(Tone.Synth).toDestination();
+        this.synth.set({ envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.1 }});
+        this.memSynth = new Tone.MembraneSynth().toDestination();
+        this.initialized = true;
+      } catch(e) {
+        console.warn("Audio initialization failed. Playing in silent mode.", e);
+      }
     },
     playClick: function() {
       if(!this.initialized) return;
@@ -354,17 +386,13 @@
     get displayGuard() { return this.guard === 8 ? 'Z' : this.guard.toString(); }
   }
 
-  let gameState = 'MENU';
+  let gameState = 'TITLE';
   let playerPosition = 0;
   let playerStats = { name: "Goku", level: 1, hp: 100, maxHp: 100, powerBonus: 0, guardBonus: 0, senzuBeans: 0 };
-  
-  // Enemy state now supports multi-stage bosses
   let enemyStats = { hp: 40, maxHp: 40, name: "Saibaman", isBoss: false, stage: 1 };
-  
   let playerDeck = [];
   let playerHand = [];
 
-  // Map Array with Story text
   const storyMap = [
     { type: 'start', story: "A pod has crashed on Earth. You sense a massive power level..." }, 
     { type: 'empty', story: "The wasteland is quiet, but danger lurks." }, 
@@ -380,32 +408,34 @@
 
   function updateLog(message) { document.getElementById('combat-log').innerText = message; }
 
-  let eventCallback = null;
-  function showCustomModal(title, message, callback = null) {
-    document.getElementById('event-title').innerText = title;
+  // --- UI NAVIGATION LOGIC ---
+  function showTitleScreen() {
+    gameState = 'TITLE';
     
-    // Change color based on title context
-    if(title === "LEVEL UP!") document.getElementById('event-title').style.color = "#ffaa00";
-    else document.getElementById('event-title').style.color = "#5c6bc0";
-
-    document.getElementById('event-message').innerText = message;
-    document.getElementById('event-screen').classList.remove('hidden');
-    eventCallback = callback;
-  }
-
-  function closeEventScreen() {
-    SFX.playClick();
+    // Explicitly hide game elements
+    document.getElementById('character-screen').classList.add('hidden');
+    document.getElementById('map-arena').classList.add('hidden');
+    document.getElementById('combat-arena').classList.add('hidden');
+    document.getElementById('inventory-hud').classList.add('hidden');
+    document.getElementById('player-hand').classList.add('hidden');
+    document.getElementById('hand-title').classList.add('hidden');
+    document.getElementById('end-screen').classList.add('hidden');
     document.getElementById('event-screen').classList.add('hidden');
-    if(eventCallback) {
-      let tempCb = eventCallback;
-      eventCallback = null;
-      tempCb();
-    }
+
+    // Show Title
+    document.getElementById('title-screen').classList.remove('hidden');
   }
 
-  async function selectCharacter(charName) {
-    // Init Audio Context on user interaction
+  async function showCharacterSelectFromTitle() {
+    // Await Audio Context directly from user's first click
     await SFX.init();
+    SFX.playClick();
+    
+    document.getElementById('title-screen').classList.add('hidden');
+    document.getElementById('character-screen').classList.remove('hidden');
+  }
+
+  function selectCharacter(charName) {
     SFX.playClick();
 
     playerStats.name = charName;
@@ -423,24 +453,40 @@
     playerStats.hp = playerStats.maxHp;
     playerPosition = 0;
     
-    // Update Portraits
-    document.getElementById('player-portrait').src = PORTRAITS[charName] || PORTRAITS['Goku'];
+    // Set Portrait with safe fallback
+    const portraitEl = document.getElementById('player-portrait');
+    portraitEl.src = PORTRAITS[charName] || `https://placehold.co/150x150/ffaa00/000?text=${charName}`;
+    portraitEl.onerror = function() { this.src = `https://placehold.co/150x150/ffaa00/000?text=${charName}`; };
 
-    document.querySelectorAll('.hidden').forEach(el => el.classList.remove('hidden'));
+    // Explicitly reveal game UI
     document.getElementById('character-screen').classList.add('hidden');
-    document.getElementById('combat-arena').classList.add('hidden');
-    document.getElementById('event-screen').classList.add('hidden');
-    document.getElementById('end-screen').classList.add('hidden');
+    document.getElementById('inventory-hud').classList.remove('hidden');
+    document.getElementById('map-arena').classList.remove('hidden');
+    document.getElementById('hand-title').classList.remove('hidden');
+    document.getElementById('player-hand').classList.remove('hidden');
 
     playerDeck = generateDeck(); playerHand = []; 
     dealInitialHand(); renderMap(); updateInventoryUI();
   }
 
-  function showCharacterSelect() {
-    gameState = 'MENU';
-    document.querySelectorAll('.hidden').forEach(el => el.classList.add('hidden')); 
-    document.getElementById('end-screen').classList.add('hidden');
-    document.getElementById('character-screen').classList.remove('hidden');
+  // --- MODALS ---
+  let eventCallback = null;
+  function showCustomModal(title, message, callback = null) {
+    document.getElementById('event-title').innerText = title;
+    document.getElementById('event-title').style.color = (title === "LEVEL UP!") ? "#ffaa00" : "#5c6bc0";
+    document.getElementById('event-message').innerText = message;
+    document.getElementById('event-screen').classList.remove('hidden');
+    eventCallback = callback;
+  }
+
+  function closeEventScreen() {
+    SFX.playClick();
+    document.getElementById('event-screen').classList.add('hidden');
+    if(eventCallback) {
+      let tempCb = eventCallback;
+      eventCallback = null;
+      tempCb();
+    }
   }
 
   function generateDeck() {
@@ -587,8 +633,11 @@
     enemyStats = { name: name, hp: maxHp, maxHp: maxHp, isBoss: isBoss, stage: 1 };
     
     document.getElementById('enemy-name').innerText = name;
-    document.getElementById('enemy-portrait').src = PORTRAITS[name] || PORTRAITS['Saibaman'];
-    document.getElementById('enemy-portrait').classList.remove('boss-enraged');
+    
+    const enemyImg = document.getElementById('enemy-portrait');
+    enemyImg.src = PORTRAITS[name] || `https://placehold.co/150x150/228B22/fff?text=${name}`;
+    enemyImg.onerror = function() { this.src = `https://placehold.co/150x150/228B22/fff?text=${name}`; };
+    enemyImg.classList.remove('boss-enraged');
 
     document.getElementById('map-arena').classList.add('hidden');
     document.getElementById('combat-arena').classList.remove('hidden');
@@ -616,7 +665,6 @@
   }
 
   function playCard(playerCard) {
-    // Multi-stage boss logic increases enemy card difficulty
     let enemyPowerBonus = enemyStats.stage === 2 ? 2 : 0;
     
     let enemyCard = new Card(
@@ -670,37 +718,37 @@
   }
 
   function checkWinCondition() {
-    // Check Loss
     if (playerStats.hp <= 0) { 
         playerStats.hp = 0; showEndScreenResult(false); return true; 
     }
     
-    // Check Win or Stage Advance
     if (enemyStats.hp <= 0) {
       enemyStats.hp = 0;
       
-      // MULTI-STAGE BOSS TRIGGER
+      // Multi-stage Boss Trigger
       if (enemyStats.isBoss && enemyStats.stage === 1) {
         enemyStats.stage = 2;
-        enemyStats.maxHp = 200; // Phase 2 Health
+        enemyStats.maxHp = 200; 
         enemyStats.hp = 200;
         enemyStats.name = "Enraged Raditz";
         
-        SFX.playDamage(); // Scary sound
+        SFX.playDamage(); 
         document.getElementById('enemy-name').innerText = enemyStats.name;
-        document.getElementById('enemy-portrait').src = PORTRAITS['RaditzStage2'];
-        document.getElementById('enemy-portrait').classList.add('boss-enraged');
         
-        updateUI(null, null); // Render health bar full
+        const enemyImg = document.getElementById('enemy-portrait');
+        enemyImg.src = PORTRAITS['RaditzStage2'] || `https://placehold.co/150x150/8B0000/fff?text=Enraged+Raditz`;
+        enemyImg.onerror = function() { this.src = `https://placehold.co/150x150/8B0000/fff?text=Enraged+Raditz`; };
+        enemyImg.classList.add('boss-enraged');
+        
+        updateUI(null, null); 
         showCustomModal("BOSS ENRAGED!", "Raditz: 'You fools! Now I'm angry!'\nHis power level has doubled!");
-        return false; // Don't end combat!
+        return false; 
       }
       
-      // Actual Win
       if (enemyStats.isBoss && enemyStats.stage === 2) {
         showEndScreenResult(true);
       } else { 
-        handleLevelUp(); // This calls endCombat automatically via callback
+        handleLevelUp(); 
       }
       return true;
     }
@@ -722,6 +770,9 @@
     }
     endScreen.classList.remove('hidden');
   }
+
+  // --- INITIAL BOOT ---
+  showTitleScreen();
 
 </script>
 </body>
