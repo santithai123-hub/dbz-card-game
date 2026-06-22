@@ -235,15 +235,15 @@
       <p>Clicking a character will start your journey.</p>
       <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
         <button class="char-select-btn" onclick="selectCharacter('Goku')">
-          <img src="https://upload.wikimedia.org/wikipedia/en/3/3c/Goku_manga_profile.png" onerror="this.src='https://placehold.co/150x150/ffaa00/000?text=Goku'" alt="Goku" class="portrait">
+          <img src="https://static.wikia.nocookie.net/dragonball/images/5/5b/Goku_Artwork_DBZ.png" onerror="this.src='https://placehold.co/150x150/ffaa00/000?text=Goku'" alt="Goku" class="portrait">
           GOKU<br><small>Balanced (+10 Spec)</small>
         </button>
         <button class="char-select-btn" onclick="selectCharacter('Vegeta')">
-          <img src="https://upload.wikimedia.org/wikipedia/en/f/f6/Vegeta_manga_profile.png" onerror="this.src='https://placehold.co/150x150/2244cc/fff?text=Vegeta'" alt="Vegeta" class="portrait">
+          <img src="https://static.wikia.nocookie.net/dragonball/images/8/87/Vegeta_Artwork_DBZ.png" onerror="this.src='https://placehold.co/150x150/2244cc/fff?text=Vegeta'" alt="Vegeta" class="portrait">
           VEGETA<br><small>Aggressive (+1 Power)</small>
         </button>
         <button class="char-select-btn" onclick="selectCharacter('Gohan')">
-          <img src="https://upload.wikimedia.org/wikipedia/en/9/91/Gohan_manga_profile.png" onerror="this.src='https://placehold.co/150x150/5522aa/fff?text=Gohan'" alt="Gohan" class="portrait">
+          <img src="https://static.wikia.nocookie.net/dragonball/images/1/14/Gohan_Artwork_DBZ.png" onerror="this.src='https://placehold.co/150x150/5522aa/fff?text=Gohan'" alt="Gohan" class="portrait">
           GOHAN<br><small>Defensive (+1 Guard)</small>
         </button>
       </div>
@@ -323,12 +323,12 @@
   
   // Real Manga/Anime Portraits with fallback safety
   const PORTRAITS = {
-    'Goku': 'https://upload.wikimedia.org/wikipedia/en/3/3c/Goku_manga_profile.png',
-    'Vegeta': 'https://upload.wikimedia.org/wikipedia/en/f/f6/Vegeta_manga_profile.png',
-    'Gohan': 'https://upload.wikimedia.org/wikipedia/en/9/91/Gohan_manga_profile.png',
-    'Saibaman': 'https://static.wikia.nocookie.net/dragonball/images/3/30/Saibamen.png/revision/latest',
-    'Raditz': 'https://upload.wikimedia.org/wikipedia/en/thumb/4/4c/Raditz.png/220px-Raditz.png',
-    'RaditzStage2': 'https://upload.wikimedia.org/wikipedia/en/thumb/4/4c/Raditz.png/220px-Raditz.png'
+    'Goku': 'https://static.wikia.nocookie.net/dragonball/images/5/5b/Goku_Artwork_DBZ.png',
+    'Vegeta': 'https://static.wikia.nocookie.net/dragonball/images/8/87/Vegeta_Artwork_DBZ.png',
+    'Gohan': 'https://static.wikia.nocookie.net/dragonball/images/1/14/Gohan_Artwork_DBZ.png',
+    'Saibaman': 'https://static.wikia.nocookie.net/dragonball/images/3/30/Saibamen.png',
+    'Raditz': 'https://static.wikia.nocookie.net/dragonball/images/1/1b/Raditz_Artwork_DBZ.png',
+    'RaditzStage2': 'https://static.wikia.nocookie.net/dragonball/images/1/1b/Raditz_Artwork_DBZ.png'
   };
 
   // Fixed Sound Engine using modern Tone.js syntax safely wrapped
@@ -555,6 +555,11 @@
     playerHand.forEach(card => {
       const div = document.createElement('div');
       div.className = 'card'; div.id = card.id; 
+      
+      // FIX: Ensure card is positioned relatively and has a high z-index to be clickable
+      div.style.position = 'relative';
+      div.style.zIndex = '50';
+
       let pStr = card.displayPower;
       if (playerStats.powerBonus > 0 && card.power !== 8) pStr = `${card.power}+${playerStats.powerBonus}`;
       let gStr = card.displayGuard;
