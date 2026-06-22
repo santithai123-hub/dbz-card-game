@@ -3,14 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DBZ RPG Card Game - v5</title>
+<title>DBZ RPG Card Game - v6</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/1.4.11/Tone.js"></script>
 <style>
-  /* --- GLOBAL STYLES --- */
+  :root {
+    --primary: #ffaa00;
+    --primary-dark: #cc8800;
+    --bg-dark: #1a1a1a;
+    --panel-bg: #222;
+    --border-color: #555;
+    --hp-green: #32cd32;
+    --hp-red: #dc143c;
+    --mana-blue: #add8e6;
+  }
+
   body {
-    background-color: #1a1a1a; color: #fff;
+    background-color: var(--bg-dark); 
+    color: #fff;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex; flex-direction: column; align-items: center;
     margin: 0; padding: 20px;
+    overflow-x: hidden;
   }
 
   h2, h3 { margin: 10px 0; }
@@ -18,118 +31,10 @@
   #version-tag {
     position: fixed; top: 10px; right: 10px;
     background-color: #444; padding: 5px 10px;
-    border-radius: 5px; font-size: 12px; font-weight: bold; color: #ffaa00;
+    border-radius: 5px; font-size: 12px; font-weight: bold; color: var(--primary);
+    z-index: 1000;
   }
 
-  /* --- RPG MAP ARENA --- */
-  #map-arena {
-    background-color: #222; padding: 20px; border-radius: 10px;
-    margin-bottom: 20px; width: 100%; max-width: 600px;
-    text-align: center; box-shadow: 0 8px 16px rgba(0,0,0,0.5);
-  }
-
-  #board-track {
-    display: flex; gap: 8px; margin-top: 20px; padding: 15px;
-    background-color: #111; border-radius: 10px; overflow-x: auto;
-  }
-
-  .map-tile {
-    min-width: 55px; height: 55px; background-color: #3a3a3a;
-    border: 2px solid #555; border-radius: 8px; display: flex;
-    align-items: center; justify-content: center; font-size: 22px; position: relative;
-  }
-
-  .tile-start { background-color: #2e7d32; border-color: #4caf50; } 
-  .tile-boss { background-color: #c62828; border-color: #ef5350; }  
-  .tile-encounter { border-color: #ff9800; background-color: #4e342e; } 
-  .tile-empty { border-color: #5c6bc0; background-color: #283593; } /* Event Tiles */
-
-  .player-token {
-    position: absolute; font-size: 36px; text-shadow: 0 0 5px #fff;
-    animation: bounce 0.6s infinite alternate; z-index: 10;
-  }
-
-  @keyframes bounce { from { transform: translateY(0px); } to { transform: translateY(-8px); } }
-
-  /* --- INVENTORY HUD --- */
-  #inventory-hud {
-    background-color: #333; border: 2px solid #777; border-radius: 8px;
-    padding: 10px 20px; margin-bottom: 15px; font-weight: bold; color: #32cd32;
-    display: flex; justify-content: space-between; align-items: center;
-  }
-
-  .use-item-btn {
-    background-color: #32cd32; color: #000; border: none; padding: 8px 15px;
-    border-radius: 5px; font-weight: bold; cursor: pointer; display: none;
-  }
-  .use-item-btn:hover { background-color: #28a428; }
-
-  /* --- COMBAT ARENA --- */
-  #combat-arena {
-    display: flex; flex-direction: column; align-items: center; background-color: #2a2a2a;
-    border: 3px solid #ffaa00; padding: 20px; border-radius: 10px; margin-bottom: 30px;
-    width: 100%; max-width: 600px; box-shadow: 0 8px 16px rgba(0,0,0,0.5);
-  }
-
-  .fighter-stats { width: 100%; text-align: center; }
-
-  .health-bar-container {
-    width: 100%; height: 25px; background-color: #555; border: 3px solid #111;
-    border-radius: 5px; overflow: hidden; margin-bottom: 5px;
-  }
-
-  .health-fill { height: 100%; width: 100%; transition: width 0.4s ease-in-out; }
-  .player-color { background-color: #32cd32; }
-  .enemy-color { background-color: #dc143c; }
-
-  #clash-zone { display: flex; align-items: center; gap: 30px; margin: 20px 0; }
-
-  .card-slot {
-    width: 120px; height: 180px; border: 2px dashed #777; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center; background-color: #111;
-  }
-
-  .vs-text { font-size: 32px; font-weight: bold; color: #ffaa00; text-shadow: 2px 2px #000; }
-
-  #combat-log {
-    background-color: #111; border: 2px solid #555; border-radius: 5px;
-    padding: 10px 20px; width: 90%; text-align: center; font-weight: bold;
-    color: #ffcc00; margin-bottom: 15px; min-height: 40px;
-    display: flex; align-items: center; justify-content: center;
-  }
-
-  .placeholder-text { color: #555; font-weight: bold; }
-
-  /* --- PLAYER HAND --- */
-  .hand-container {
-    display: flex; gap: 15px; padding: 20px; background-color: #222;
-    border-radius: 10px; justify-content: center; flex-wrap: wrap;
-    max-width: 800px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-  }
-
-  .card {
-    width: 120px; height: 180px; background-color: #fdfdfd; border: 3px solid #444;
-    border-radius: 8px; position: relative; cursor: pointer;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3); transition: transform 0.2s ease-in-out, border-color 0.2s; user-select: none;
-  }
-  .card:hover { transform: translateY(-15px); border-color: #ff9900; }
-
-  .power, .guard {
-    position: absolute; display: flex; align-items: center; justify-content: center; font-weight: bold;
-  }
-  .power {
-    top: 8px; left: 8px; background-color: #ffaa00; color: #fff;
-    border: 2px solid #cc2200; border-radius: 50%; width: 28px; height: 28px;
-  }
-  .guard {
-    bottom: 8px; right: 8px; background-color: #add8e6; color: #000;
-    border: 2px solid #00008b; padding: 2px 6px; border-radius: 4px;
-  }
-  .action {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 40px;
-  }
-
-  /* --- OVERLAYS --- */
   .hidden { display: none !important; }
 
   .overlay {
@@ -139,102 +44,307 @@
   }
 
   .end-modal {
-    background-color: #222; border: 4px solid #ffaa00; padding: 40px;
-    border-radius: 10px; text-align: center; max-width: 600px;
+    background-color: var(--panel-bg); border: 4px solid var(--primary); padding: 40px;
+    border-radius: 10px; text-align: center; max-width: 600px; width: 90%;
+    box-shadow: 0 0 20px rgba(255, 170, 0, 0.3);
   }
 
-  #end-title { font-size: 48px; margin-bottom: 10px; }
-  
-  .char-select-btn {
-    margin: 10px; padding: 15px 25px; font-size: 18px; font-weight: bold;
-    background-color: #333; color: white; border: 2px solid #777;
-    border-radius: 8px; cursor: pointer; transition: all 0.2s;
-  }
-  .char-select-btn:hover { border-color: #ffaa00; transform: scale(1.05); }
-
-  #restart-button {
+  .btn {
     margin-top: 20px; padding: 15px 30px; font-size: 20px; font-weight: bold;
-    background-color: #ffaa00; border: none; border-radius: 5px; cursor: pointer;
+    background-color: var(--primary); border: none; border-radius: 5px; 
+    cursor: pointer; transition: background-color 0.2s, transform 0.1s;
+    color: #000;
+  }
+  .btn:hover { background-color: var(--primary-dark); }
+  .btn:active { transform: scale(0.95); }
+
+  .char-select-btn {
+    margin: 10px; padding: 15px; background-color: #333; color: white; 
+    border: 2px solid var(--border-color); border-radius: 8px; cursor: pointer; 
+    transition: all 0.2s; display: flex; flex-direction: column; align-items: center;
+    width: 160px;
+  }
+  .char-select-btn:hover { border-color: var(--primary); transform: scale(1.05); }
+  
+  .portrait {
+    width: 120px; height: 120px; border-radius: 8px; border: 2px solid #000;
+    margin-bottom: 10px; object-fit: cover; background-color: #000;
+  }
+  
+  .combat-portrait {
+    width: 100px; height: 100px; border-radius: 50%; border: 3px solid #777;
+    margin-bottom: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    transition: all 0.3s ease;
+  }
+  .boss-enraged { border-color: var(--hp-red); box-shadow: 0 0 15px var(--hp-red); }
+
+  #map-arena {
+    background-color: var(--panel-bg); padding: 20px; border-radius: 10px;
+    margin-bottom: 20px; width: 100%; max-width: 800px;
+    text-align: center; box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+  }
+
+  #story-box {
+    background-color: #111; border: 1px solid #444; border-radius: 5px;
+    padding: 15px; margin: 15px 0; font-style: italic; color: #ddd;
+    min-height: 50px; display: flex; align-items: center; justify-content: center;
+  }
+
+  #board-track {
+    display: flex; gap: 8px; margin-top: 10px; padding: 15px;
+    background-color: #111; border-radius: 10px; overflow-x: auto;
+  }
+
+  .map-tile {
+    min-width: 55px; height: 55px; background-color: #3a3a3a;
+    border: 2px solid var(--border-color); border-radius: 8px; display: flex;
+    align-items: center; justify-content: center; font-size: 22px; position: relative;
+  }
+
+  .tile-start { background-color: #2e7d32; border-color: #4caf50; } 
+  .tile-boss { background-color: #c62828; border-color: #ef5350; }  
+  .tile-encounter { border-color: #ff9800; background-color: #4e342e; } 
+  .tile-empty { border-color: #5c6bc0; background-color: #283593; } 
+
+  .player-token {
+    position: absolute; font-size: 36px; text-shadow: 0 0 5px #fff;
+    animation: bounce 0.6s infinite alternate; z-index: 10;
+  }
+  @keyframes bounce { from { transform: translateY(0px); } to { transform: translateY(-8px); } }
+
+  #inventory-hud {
+    background-color: #333; border: 2px solid #777; border-radius: 8px;
+    padding: 10px 20px; margin-bottom: 15px; font-weight: bold; color: var(--hp-green);
+    display: flex; justify-content: space-between; align-items: center;
+    width: 100%; max-width: 800px;
+  }
+
+  .use-item-btn {
+    background-color: var(--hp-green); color: #000; border: none; padding: 8px 15px;
+    border-radius: 5px; font-weight: bold; cursor: pointer; display: none;
+  }
+  .use-item-btn:hover { background-color: #28a428; }
+
+  #combat-arena {
+    display: flex; flex-direction: column; align-items: center; background-color: #2a2a2a;
+    border: 3px solid var(--primary); padding: 20px; border-radius: 10px; margin-bottom: 30px;
+    width: 100%; max-width: 800px; box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+  }
+
+  .combat-layout {
+    display: flex; width: 100%; justify-content: space-between; align-items: center;
+  }
+
+  .fighter-stats { width: 30%; text-align: center; }
+
+  .health-bar-container {
+    width: 100%; height: 25px; background-color: #555; border: 3px solid #111;
+    border-radius: 5px; overflow: hidden; margin-bottom: 5px;
+  }
+
+  .health-fill { height: 100%; width: 100%; transition: width 0.4s ease-in-out; }
+  .player-color { background-color: var(--hp-green); }
+  .enemy-color { background-color: var(--hp-red); }
+
+  #clash-zone { display: flex; align-items: center; gap: 15px; margin: 20px 0; width: 40%; justify-content: center;}
+
+  .card-slot {
+    width: 100px; height: 150px; border: 2px dashed #777; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; background-color: #111;
+  }
+
+  .vs-text { font-size: 24px; font-weight: bold; color: var(--primary); text-shadow: 2px 2px #000; }
+
+  #combat-log {
+    background-color: #111; border: 2px solid #555; border-radius: 5px;
+    padding: 10px 20px; width: 90%; text-align: center; font-weight: bold;
+    color: #ffcc00; margin-bottom: 25px; min-height: 40px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .placeholder-text { color: #555; font-weight: bold; font-size: 14px; text-align: center; }
+
+  .hand-container {
+    display: flex; gap: 15px; padding: 20px; background-color: var(--panel-bg);
+    border-radius: 10px; justify-content: center; flex-wrap: wrap;
+    width: 100%; max-width: 800px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  }
+
+  .card {
+    width: 110px; height: 160px; background-color: #fdfdfd; border: 3px solid #444;
+    border-radius: 8px; position: relative; cursor: pointer; color: #000;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3); transition: transform 0.2s ease-in-out, border-color 0.2s; user-select: none;
+  }
+  .card:hover { transform: translateY(-15px); border-color: var(--primary); }
+
+  .power, .guard {
+    position: absolute; display: flex; align-items: center; justify-content: center; font-weight: bold;
+  }
+  .power {
+    top: 5px; left: 5px; background-color: var(--primary); color: #fff;
+    border: 2px solid #cc2200; border-radius: 50%; width: 28px; height: 28px;
+  }
+  .guard {
+    bottom: 5px; right: 5px; background-color: var(--mana-blue); color: #000;
+    border: 2px solid #00008b; padding: 2px 6px; border-radius: 4px;
+  }
+  .action {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 36px;
+  }
+
+  @media (max-width: 600px) {
+    .combat-layout { flex-direction: column; }
+    .fighter-stats { width: 100%; margin-bottom: 10px;}
+    #clash-zone { width: 100%; }
   }
 </style>
 </head>
 <body>
 
-  <div id="version-tag">Version: 5</div>
+  <div id="version-tag">Version: 6</div>
 
-  <!-- CHARACTER SELECT -->
   <div id="character-screen" class="overlay">
     <div class="end-modal">
-      <h1 id="end-title" style="color: #ffaa00;">SELECT YOUR FIGHTER</h1>
-      <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
-        <button class="char-select-btn" onclick="selectCharacter('Goku')">GOKU<br><small>Balanced Fighter</small></button>
-        <button class="char-select-btn" onclick="selectCharacter('Vegeta')">VEGETA<br><small>Aggressive (+1 Power)</small></button>
-        <button class="char-select-btn" onclick="selectCharacter('Gohan')">GOHAN<br><small>Defensive (+1 Guard)</small></button>
+      <h1 style="color: var(--primary);">SELECT YOUR FIGHTER</h1>
+      <p>Clicking a character will enable audio and start the game.</p>
+      <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
+        <button class="char-select-btn" onclick="selectCharacter('Goku')">
+          <img src="https://placehold.co/150x150/ffaa00/000?text=Goku" alt="Goku" class="portrait">
+          GOKU<br><small>Balanced (+10 Spec)</small>
+        </button>
+        <button class="char-select-btn" onclick="selectCharacter('Vegeta')">
+          <img src="https://placehold.co/150x150/2244cc/fff?text=Vegeta" alt="Vegeta" class="portrait">
+          VEGETA<br><small>Aggressive (+1 Power)</small>
+        </button>
+        <button class="char-select-btn" onclick="selectCharacter('Gohan')">
+          <img src="https://placehold.co/150x150/5522aa/fff?text=Gohan" alt="Gohan" class="portrait">
+          GOHAN<br><small>Defensive (+1 Guard)</small>
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- INVENTORY HUD -->
-  <div id="inventory-hud" class="hidden" style="width: 100%; max-width: 600px;">
+  <div id="inventory-hud" class="hidden">
     <span>🎒 Bag: <span id="senzu-count">0</span> Senzu Bean(s)</span>
-    <button id="use-bean-btn" class="use-item-btn" onclick="useSenzuBean()">Use Bean (+50 HP)</button>
+    <button id="use-bean-btn" class="use-item-btn" onclick="useSenzuBean()">Eat Bean (+50 HP)</button>
   </div>
 
-  <!-- THE RPG MAP VIEW -->
   <div id="map-arena" class="hidden">
     <h2>Story Route: The Saiyan Arrival</h2>
-    <h3 id="map-player-level" style="color: #ffaa00;">Level: 1</h3>
+    <div id="story-box">The journey begins...</div>
+    <h3 id="map-player-level" style="color: var(--primary);">Level: 1</h3>
     <div id="board-track"></div>
   </div>
 
-  <!-- EVENT POPUP MODAL -->
   <div id="event-screen" class="overlay hidden">
     <div class="end-modal" style="border-color: #5c6bc0;">
-      <h1 style="color: #5c6bc0;">MAP EVENT!</h1>
-      <p id="event-message" style="font-size: 20px;">You found something...</p>
-      <button id="restart-button" onclick="closeEventScreen()">Continue</button>
+      <h1 id="event-title" style="color: #5c6bc0;">MESSAGE</h1>
+      <p id="event-message" style="font-size: 20px;">Text goes here...</p>
+      <button class="btn" onclick="closeEventScreen()">Continue</button>
     </div>
   </div>
 
-  <!-- THE COMBAT ARENA VIEW -->
   <div id="combat-arena" class="hidden">
     <div id="combat-log">A wild enemy appeared!</div>
 
-    <div class="fighter-stats">
-      <h3 id="enemy-name">Saibaman</h3>
-      <div class="health-bar-container"><div id="enemy-health-fill" class="health-fill enemy-color"></div></div>
-      <p>HP: <span id="enemy-hp-text">40 / 40</span></p>
-    </div>
+    <div class="combat-layout">
+      
+      <!-- Player -->
+      <div class="fighter-stats">
+        <img id="player-portrait" src="https://placehold.co/150x150/ffaa00/000?text=Player" class="combat-portrait">
+        <h3 id="combat-player-level">Player</h3>
+        <div class="health-bar-container"><div id="player-health-fill" class="health-fill player-color"></div></div>
+        <p>HP: <span id="player-hp-text">100 / 100</span></p>
+      </div>
 
-    <div id="clash-zone">
-      <div id="player-active-card" class="card-slot"><p class="placeholder-text">Your Card</p></div>
-      <div class="vs-text">VS</div>
-      <div id="enemy-active-card" class="card-slot"><p class="placeholder-text">Enemy Card</p></div>
-    </div>
+      <!-- Clash Zone -->
+      <div id="clash-zone">
+        <div id="player-active-card" class="card-slot"><p class="placeholder-text">Your Card</p></div>
+        <div class="vs-text">VS</div>
+        <div id="enemy-active-card" class="card-slot"><p class="placeholder-text">Enemy Card</p></div>
+      </div>
 
-    <div class="fighter-stats">
-      <h3 id="combat-player-level">Player</h3>
-      <div class="health-bar-container"><div id="player-health-fill" class="health-fill player-color"></div></div>
-      <p>HP: <span id="player-hp-text">100 / 100</span></p>
+      <!-- Enemy -->
+      <div class="fighter-stats">
+        <img id="enemy-portrait" src="https://placehold.co/150x150/228B22/fff?text=Enemy" class="combat-portrait">
+        <h3 id="enemy-name">Saibaman</h3>
+        <div class="health-bar-container"><div id="enemy-health-fill" class="health-fill enemy-color"></div></div>
+        <p>HP: <span id="enemy-hp-text">40 / 40</span></p>
+      </div>
+
     </div>
   </div>
 
-  <!-- PLAYER HAND -->
   <h2 id="hand-title" class="hidden">Your Hand</h2>
   <div id="player-hand" class="hand-container hidden"></div>
 
-  <!-- END SCREEN -->
   <div id="end-screen" class="overlay hidden">
     <div class="end-modal">
       <h1 id="end-title-result">GAME OVER</h1>
       <p id="end-message">Raditz has defeated you.</p>
-      <button id="restart-button" onclick="showCharacterSelect()">Play Again</button>
+      <button class="btn" onclick="showCharacterSelect()">Play Again</button>
     </div>
   </div>
 
 <script>
-  const GAME_VERSION = 5;
+  const GAME_VERSION = 6;
+  console.log(`%c DBZ Card RPG Loaded - Running Version ${GAME_VERSION} `, "background: #ffaa00; color: #000; font-weight: bold;");
+
   const ACTION_ICONS = { 'melee': '👊', 'ki_blast': '💥', 'defend': '🛡️', 'recover': '💊', 'special': '✨' };
+  
+  // Image placeholders
+  const PORTRAITS = {
+    'Goku': 'https://placehold.co/150x150/ff9900/000?text=Goku',
+    'Vegeta': 'https://placehold.co/150x150/2244cc/fff?text=Vegeta',
+    'Gohan': 'https://placehold.co/150x150/5522aa/fff?text=Gohan',
+    'Saibaman': 'https://placehold.co/150x150/228B22/fff?text=Saibaman',
+    'Raditz': 'https://placehold.co/150x150/000000/fff?text=Raditz',
+    'RaditzStage2': 'https://placehold.co/150x150/8B0000/fff?text=Enraged+Raditz'
+  };
+
+  // Sound Engine Object using Tone.js
+  const SFX = {
+    initialized: false,
+    synth: null,
+    memSynth: null,
+    
+    init: async function() {
+      if(this.initialized) return;
+      await Tone.start();
+      this.synth = new Tone.PolySynth(Tone.Synth).toDestination();
+      this.synth.set({ envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.1 }});
+      
+      this.memSynth = new Tone.MembraneSynth().toDestination();
+      this.initialized = true;
+    },
+    playClick: function() {
+      if(!this.initialized) return;
+      this.synth.triggerAttackRelease("C5", "32n");
+    },
+    playHit: function() {
+      if(!this.initialized) return;
+      this.memSynth.triggerAttackRelease("C2", "8n");
+    },
+    playDamage: function() {
+      if(!this.initialized) return;
+      this.synth.triggerAttackRelease(["C3", "D#3"], "16n");
+    },
+    playHeal: function() {
+      if(!this.initialized) return;
+      const now = Tone.now();
+      this.synth.triggerAttackRelease("E4", "16n", now);
+      this.synth.triggerAttackRelease("G4", "16n", now + 0.1);
+      this.synth.triggerAttackRelease("C5", "8n", now + 0.2);
+    },
+    playLevelUp: function() {
+      if(!this.initialized) return;
+      const now = Tone.now();
+      this.synth.triggerAttackRelease("C4", "8n", now);
+      this.synth.triggerAttackRelease("E4", "8n", now + 0.15);
+      this.synth.triggerAttackRelease("G4", "8n", now + 0.3);
+      this.synth.triggerAttackRelease("C5", "4n", now + 0.45);
+    }
+  };
 
   class Card {
     constructor(id, power, guard, actionType) {
@@ -247,29 +357,60 @@
   let gameState = 'MENU';
   let playerPosition = 0;
   let playerStats = { name: "Goku", level: 1, hp: 100, maxHp: 100, powerBonus: 0, guardBonus: 0, senzuBeans: 0 };
-  let enemyStats = { hp: 40, maxHp: 40, name: "Saibaman" };
+  
+  // Enemy state now supports multi-stage bosses
+  let enemyStats = { hp: 40, maxHp: 40, name: "Saibaman", isBoss: false, stage: 1 };
+  
   let playerDeck = [];
   let playerHand = [];
 
+  // Map Array with Story text
   const storyMap = [
-    { type: 'start' }, { type: 'empty' }, { type: 'encounter' }, { type: 'empty' },
-    { type: 'encounter' }, { type: 'empty' }, { type: 'encounter' }, { type: 'empty' },
-    { type: 'empty' }, { type: 'boss' }
+    { type: 'start', story: "A pod has crashed on Earth. You sense a massive power level..." }, 
+    { type: 'empty', story: "The wasteland is quiet, but danger lurks." }, 
+    { type: 'encounter', story: "Ambush! Saibamen crawl from the dirt!" }, 
+    { type: 'empty', story: "You press forward toward the crash site." },
+    { type: 'encounter', story: "Another Saibaman blocks your path!" }, 
+    { type: 'empty', story: "You can feel the enemy's ki getting closer." }, 
+    { type: 'encounter', story: "A fierce Saibaman attacks!" }, 
+    { type: 'empty', story: "The crater is just ahead." },
+    { type: 'empty', story: "There he is... The Saiyan invader." }, 
+    { type: 'boss', story: "Raditz: 'You're a disgrace to the Saiyan race!'" }
   ];
 
   function updateLog(message) { document.getElementById('combat-log').innerText = message; }
 
-  function showCharacterSelect() {
-    gameState = 'MENU';
-    document.querySelectorAll('.hidden').forEach(el => el.classList.add('hidden')); // Reset UI
-    document.getElementById('end-screen').classList.add('hidden');
-    document.getElementById('character-screen').classList.remove('hidden');
+  let eventCallback = null;
+  function showCustomModal(title, message, callback = null) {
+    document.getElementById('event-title').innerText = title;
+    
+    // Change color based on title context
+    if(title === "LEVEL UP!") document.getElementById('event-title').style.color = "#ffaa00";
+    else document.getElementById('event-title').style.color = "#5c6bc0";
+
+    document.getElementById('event-message').innerText = message;
+    document.getElementById('event-screen').classList.remove('hidden');
+    eventCallback = callback;
   }
 
-  function selectCharacter(charName) {
+  function closeEventScreen() {
+    SFX.playClick();
+    document.getElementById('event-screen').classList.add('hidden');
+    if(eventCallback) {
+      let tempCb = eventCallback;
+      eventCallback = null;
+      tempCb();
+    }
+  }
+
+  async function selectCharacter(charName) {
+    // Init Audio Context on user interaction
+    await SFX.init();
+    SFX.playClick();
+
     playerStats.name = charName;
     playerStats.level = 1;
-    playerStats.senzuBeans = 0; // Reset inventory
+    playerStats.senzuBeans = 0;
     
     if (charName === 'Goku') {
       playerStats.maxHp = 100; playerStats.powerBonus = 0; playerStats.guardBonus = 0;
@@ -282,14 +423,24 @@
     playerStats.hp = playerStats.maxHp;
     playerPosition = 0;
     
+    // Update Portraits
+    document.getElementById('player-portrait').src = PORTRAITS[charName] || PORTRAITS['Goku'];
+
+    document.querySelectorAll('.hidden').forEach(el => el.classList.remove('hidden'));
     document.getElementById('character-screen').classList.add('hidden');
-    document.getElementById('inventory-hud').classList.remove('hidden');
-    document.getElementById('hand-title').classList.remove('hidden');
-    document.getElementById('player-hand').classList.remove('hidden');
-    document.getElementById('map-arena').classList.remove('hidden');
+    document.getElementById('combat-arena').classList.add('hidden');
+    document.getElementById('event-screen').classList.add('hidden');
+    document.getElementById('end-screen').classList.add('hidden');
 
     playerDeck = generateDeck(); playerHand = []; 
     dealInitialHand(); renderMap(); updateInventoryUI();
+  }
+
+  function showCharacterSelect() {
+    gameState = 'MENU';
+    document.querySelectorAll('.hidden').forEach(el => el.classList.add('hidden')); 
+    document.getElementById('end-screen').classList.add('hidden');
+    document.getElementById('character-screen').classList.remove('hidden');
   }
 
   function generateDeck() {
@@ -313,11 +464,9 @@
     renderHand();
   }
 
-  // --- INVENTORY LOGIC ---
   function updateInventoryUI() {
     document.getElementById('senzu-count').innerText = playerStats.senzuBeans;
     const useBtn = document.getElementById('use-bean-btn');
-    // Button only shows in combat if you have beans and aren't at full health
     if (gameState === 'COMBAT' && playerStats.senzuBeans > 0 && playerStats.hp < playerStats.maxHp) {
       useBtn.style.display = 'block';
     } else {
@@ -327,9 +476,10 @@
 
   function useSenzuBean() {
     if (playerStats.senzuBeans > 0) {
+      SFX.playHeal();
       playerStats.senzuBeans--;
       playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + 50);
-      updateLog("You ate a Senzu Bean from your bag! (+50 HP)");
+      updateLog("You ate a Senzu Bean! (+50 HP)");
       updateInventoryUI();
       updateUI(null, null);
     }
@@ -345,9 +495,11 @@
       if (tile.type === 'boss') div.innerHTML += `👹`; 
       else if (tile.type === 'start') div.innerHTML += `🏠`; 
       else if (tile.type === 'encounter') div.innerHTML += `❗`;
-      else if (tile.type === 'empty') div.innerHTML += `?`; // Event marker
+      else if (tile.type === 'empty') div.innerHTML += `?`; 
       track.appendChild(div);
     });
+    
+    document.getElementById('story-box').innerText = storyMap[playerPosition].story;
     document.getElementById('map-player-level').innerText = `${playerStats.name} Level: ${playerStats.level} (Atk +${playerStats.powerBonus} | Def +${playerStats.guardBonus})`;
   }
 
@@ -364,6 +516,7 @@
 
       div.innerHTML = `<div class="power">${pStr}</div><div class="action">${ACTION_ICONS[card.actionType]}</div><div class="guard">${gStr}</div>`;
       div.addEventListener('click', () => {
+        SFX.playClick();
         if (gameState === 'MAP') movePlayerOnMap(card);
         else if (gameState === 'COMBAT') playCard(card);
       });
@@ -381,23 +534,26 @@
     if (playerCard && enemyCard) {
       let pDisplay = playerCard.power === 8 ? 'Z' : (playerCard.power + playerStats.powerBonus);
       let gDisplay = playerCard.guard === 8 ? 'Z' : (playerCard.guard + playerStats.guardBonus);
-      document.getElementById('player-active-card').innerHTML = `<div class="card" style="margin: 0; cursor: default;"><div class="power">${pDisplay}</div><div class="action">${ACTION_ICONS[playerCard.actionType]}</div><div class="guard">${gDisplay}</div></div>`;
-      document.getElementById('enemy-active-card').innerHTML = `<div class="card" style="margin: 0; cursor: default; border-color: #dc143c;"><div class="power">${enemyCard.displayPower}</div><div class="action">${ACTION_ICONS[enemyCard.actionType]}</div><div class="guard">${enemyCard.displayGuard}</div></div>`;
+      
+      let pCardHTML = playerCard.power === '?' ? `<p class="placeholder-text">Your Card</p>` : `<div class="card" style="margin: 0; cursor: default;"><div class="power">${pDisplay}</div><div class="action">${ACTION_ICONS[playerCard.actionType]}</div><div class="guard">${gDisplay}</div></div>`;
+      let eCardHTML = enemyCard.power === '?' ? `<p class="placeholder-text">Enemy Card</p>` : `<div class="card" style="margin: 0; cursor: default; border-color: #dc143c;"><div class="power">${enemyCard.displayPower}</div><div class="action">${ACTION_ICONS[enemyCard.actionType]}</div><div class="guard">${enemyCard.displayGuard}</div></div>`;
+      
+      document.getElementById('player-active-card').innerHTML = pCardHTML;
+      document.getElementById('enemy-active-card').innerHTML = eCardHTML;
     }
   }
 
-  // --- RPG NAVIGATION & EVENTS ---
   function movePlayerOnMap(card) {
     playerPosition = Math.min(storyMap.length - 1, playerPosition + card.power);
     renderMap();
     let currentTile = storyMap[playerPosition];
     
     if (currentTile.type === 'encounter') {
-      startCombat("Saibaman", 40 + (playerPosition * 10)); 
+      startCombat("Saibaman", 40 + (playerPosition * 10), false); 
     } else if (currentTile.type === 'boss') {
-      startCombat("Raditz", 180); 
+      startCombat("Raditz", 150, true); 
     } else if (currentTile.type === 'empty') {
-      triggerMapEvent(); // Fire random event!
+      triggerMapEvent(); 
     }
     replaceUsedCard(card);
   }
@@ -408,35 +564,38 @@
     if (roll < 0.4) {
       msg = "You found a Senzu Bean hidden in the wasteland!";
       playerStats.senzuBeans++;
+      SFX.playHeal();
     } else if (roll < 0.7) {
       msg = "You took a quick rest. Recovered 20 HP.";
       playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + 20);
+      SFX.playHeal();
     } else {
       msg = "Gravity Chamber Malfunction! You took 15 damage but gained +1 Base Power permanently!";
       playerStats.hp -= 15;
       playerStats.powerBonus += 1;
+      SFX.playDamage();
     }
     
-    document.getElementById('event-message').innerText = msg;
-    document.getElementById('event-screen').classList.remove('hidden');
-    updateInventoryUI(); renderHand();
-    if (playerStats.hp <= 0) checkWinCondition(); // In case gravity kills you!
+    showCustomModal("MAP EVENT!", msg, () => {
+        updateInventoryUI(); renderHand();
+        if (playerStats.hp <= 0) checkWinCondition();
+    });
   }
 
-  function closeEventScreen() {
-    document.getElementById('event-screen').classList.add('hidden');
-  }
-
-  function startCombat(name, maxHp) {
+  function startCombat(name, maxHp, isBoss) {
     gameState = 'COMBAT';
-    enemyStats = { name: name, hp: maxHp, maxHp: maxHp };
+    enemyStats = { name: name, hp: maxHp, maxHp: maxHp, isBoss: isBoss, stage: 1 };
+    
     document.getElementById('enemy-name').innerText = name;
+    document.getElementById('enemy-portrait').src = PORTRAITS[name] || PORTRAITS['Saibaman'];
+    document.getElementById('enemy-portrait').classList.remove('boss-enraged');
+
     document.getElementById('map-arena').classList.add('hidden');
     document.getElementById('combat-arena').classList.remove('hidden');
     updateLog(`You encountered ${name}! Select a card to fight.`);
-    document.getElementById('player-active-card').innerHTML = '<p class="placeholder-text">Your Card</p>';
-    document.getElementById('enemy-active-card').innerHTML = '<p class="placeholder-text">Enemy Card</p>';
-    updateUI(null, null); updateInventoryUI();
+    
+    updateUI({power: '?', actionType: 'melee', guard: '?'}, {power: '?', actionType: 'melee', guard: '?'}); 
+    updateInventoryUI();
   }
 
   function endCombat() {
@@ -447,13 +606,26 @@
   }
 
   function handleLevelUp() {
+    SFX.playLevelUp();
     playerStats.level += 1; playerStats.maxHp += 20; playerStats.hp = playerStats.maxHp; playerStats.powerBonus += 1; 
-    alert(`LEVEL UP! ${playerStats.name} grew to Level ${playerStats.level}! Max HP is now ${playerStats.maxHp}!`);
+    
+    let msg = `${playerStats.name} grew to Level ${playerStats.level}!\nMax HP is now ${playerStats.maxHp}!\nBase Power permanently boosted by +1!`;
+    showCustomModal("LEVEL UP!", msg, () => {
+        endCombat();
+    });
   }
 
-  // --- COMBAT ENGINE ---
   function playCard(playerCard) {
-    let enemyCard = new Card("ENEMY", Math.floor(Math.random() * 8) + 1, Math.floor(Math.random() * 8) + 1, 'melee');
+    // Multi-stage boss logic increases enemy card difficulty
+    let enemyPowerBonus = enemyStats.stage === 2 ? 2 : 0;
+    
+    let enemyCard = new Card(
+      "ENEMY", 
+      Math.min(8, Math.floor(Math.random() * 8) + 1 + enemyPowerBonus), 
+      Math.floor(Math.random() * 8) + 1, 
+      'melee'
+    );
+    
     let effectivePower = playerCard.power + playerStats.powerBonus;
     let effectiveGuard = playerCard.guard + playerStats.guardBonus;
     let logMsg = "";
@@ -462,11 +634,13 @@
     else if (playerCard.actionType === 'ki_blast') { effectivePower += 2; logMsg += "Ki Blast powers up! "; }
     else if (playerCard.actionType === 'recover') {
       let heal = playerCard.power * 5; playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + heal);
+      SFX.playHeal();
       logMsg = `You healed ${heal} HP! `;
     }
 
     if (playerCard.actionType === 'recover') {
       let damage = Math.max(1, enemyCard.power - effectiveGuard); playerStats.hp -= damage;
+      SFX.playDamage();
       logMsg += `Enemy hits for ${damage} while you heal!`;
     } else {
       if (effectivePower > enemyCard.power) {
@@ -474,11 +648,14 @@
         if (playerCard.actionType === 'special') {
           if (playerStats.name === 'Goku') { damage += 10; logMsg += "KAMEHAMEHA! "; }
           else if (playerStats.name === 'Vegeta') { damage += 15; playerStats.hp -= 5; logMsg += "FINAL FLASH! "; }
-          else if (playerStats.name === 'Gohan') { playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + 10); logMsg += "MASENKO! "; }
+          else if (playerStats.name === 'Gohan') { playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + 10); logMsg += "MASENKO! "; SFX.playHeal(); }
         }
         enemyStats.hp -= damage; logMsg += `You deal ${damage} damage!`;
+        SFX.playHit();
       } else if (enemyCard.power > effectivePower) {
-        let damage = Math.max(1, enemyCard.power - effectiveGuard); playerStats.hp -= damage; logMsg += `You take ${damage} damage.`;
+        let damage = Math.max(1, enemyCard.power - effectiveGuard); playerStats.hp -= damage; 
+        logMsg += `You take ${damage} damage.`;
+        SFX.playDamage();
       } else { logMsg += "It's a tie!"; }
     }
 
@@ -493,11 +670,38 @@
   }
 
   function checkWinCondition() {
-    if (playerStats.hp <= 0) { playerStats.hp = 0; showEndScreenResult(false); return true; }
+    // Check Loss
+    if (playerStats.hp <= 0) { 
+        playerStats.hp = 0; showEndScreenResult(false); return true; 
+    }
+    
+    // Check Win or Stage Advance
     if (enemyStats.hp <= 0) {
       enemyStats.hp = 0;
-      if (storyMap[playerPosition].type === 'boss') showEndScreenResult(true);
-      else { handleLevelUp(); endCombat(); }
+      
+      // MULTI-STAGE BOSS TRIGGER
+      if (enemyStats.isBoss && enemyStats.stage === 1) {
+        enemyStats.stage = 2;
+        enemyStats.maxHp = 200; // Phase 2 Health
+        enemyStats.hp = 200;
+        enemyStats.name = "Enraged Raditz";
+        
+        SFX.playDamage(); // Scary sound
+        document.getElementById('enemy-name').innerText = enemyStats.name;
+        document.getElementById('enemy-portrait').src = PORTRAITS['RaditzStage2'];
+        document.getElementById('enemy-portrait').classList.add('boss-enraged');
+        
+        updateUI(null, null); // Render health bar full
+        showCustomModal("BOSS ENRAGED!", "Raditz: 'You fools! Now I'm angry!'\nHis power level has doubled!");
+        return false; // Don't end combat!
+      }
+      
+      // Actual Win
+      if (enemyStats.isBoss && enemyStats.stage === 2) {
+        showEndScreenResult(true);
+      } else { 
+        handleLevelUp(); // This calls endCombat automatically via callback
+      }
       return true;
     }
     return false;
@@ -508,14 +712,17 @@
     const endTitle = document.getElementById('end-title-result');
     const endMessage = document.getElementById('end-message');
     if (isVictory) {
-      endTitle.innerText = "VICTORY!"; endTitle.style.color = "#32cd32";
+      SFX.playLevelUp();
+      endTitle.innerText = "VICTORY!"; endTitle.style.color = "var(--hp-green)";
       endMessage.innerText = `You defeated Raditz as ${playerStats.name}!`;
     } else {
-      endTitle.innerText = "GAME OVER"; endTitle.style.color = "#dc143c";
+      SFX.playDamage();
+      endTitle.innerText = "GAME OVER"; endTitle.style.color = "var(--hp-red)";
       endMessage.innerText = `${playerStats.name} fell in battle.`;
     }
     endScreen.classList.remove('hidden');
   }
+
 </script>
 </body>
 </html>
