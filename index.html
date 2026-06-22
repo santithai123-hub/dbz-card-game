@@ -3,9 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DBZ RPG Card Game - v8</title>
+<!-- CRITICAL FIX: This meta tag allows DBZ Wiki images to load without being blocked! -->
+<meta name="referrer" content="no-referrer">
+<title>DBZ RPG Card Game - v9</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 <style>
+  /* --- GLOBAL STYLES --- */
   :root {
     --primary: #ffaa00;
     --primary-dark: #cc8800;
@@ -37,6 +40,7 @@
 
   .hidden { display: none !important; }
 
+  /* --- OVERLAYS --- */
   .overlay {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background-color: rgba(0, 0, 0, 0.95); display: flex;
@@ -117,11 +121,14 @@
     overflow-x: auto; overflow-y: hidden; position: relative;
     width: 100%; height: 320px; border: 2px solid #333;
     scroll-behavior: smooth;
+    /* Adding a subtle grid background to make the map look better */
+    background-image: radial-gradient(#333 1px, transparent 1px);
+    background-size: 20px 20px;
   }
 
   #map-content {
     position: absolute; top: 0; left: 0;
-    width: 1000px; height: 320px; /* Fixed internal size for absolute nodes */
+    width: 1000px; height: 320px; 
   }
 
   #map-lines {
@@ -158,7 +165,7 @@
   .player-token {
     position: absolute; font-size: 40px; text-shadow: 0 0 10px #fff;
     z-index: 20; transition: left 0.6s ease-in-out, top 0.6s ease-in-out;
-    pointer-events: none; /* Let clicks pass through to tiles */
+    pointer-events: none; 
   }
 
   #inventory-hud {
@@ -243,34 +250,33 @@
 </head>
 <body>
 
-  <div id="version-tag">Version: 8</div>
+  <div id="version-tag">Version: 9</div>
 
-  <!-- TITLE SCREEN -->
   <div id="title-screen" class="overlay">
     <div class="end-modal">
-      <img src="https://upload.wikimedia.org/wikipedia/en/c/c4/Dragon_Ball_Z_vol_1.jpg" alt="DBZ Manga Cover" class="title-cover-img" onerror="this.src='https://placehold.co/250x350/111/ffaa00?text=Dragon+Ball+Z'">
+      <!-- Fixed the onerror to prevent infinite loops -->
+      <img src="https://upload.wikimedia.org/wikipedia/en/c/c4/Dragon_Ball_Z_vol_1.jpg" alt="DBZ Manga Cover" class="title-cover-img" onerror="this.onerror=null; this.src='https://placehold.co/250x350/111/ffaa00?text=Dragon+Ball+Z'">
       <h1 style="color: var(--primary); text-shadow: 2px 2px #000; margin: 0; font-size: 40px;">DRAGON BALL Z</h1>
       <h2 style="color: #fff; margin-top: 5px; font-weight: normal; font-size: 22px;">Harukanaru Goku Densetsu</h2>
       <button class="btn" onclick="showCharacterSelectFromTitle()">START GAME</button>
     </div>
   </div>
 
-  <!-- CHARACTER SELECTION -->
   <div id="character-screen" class="overlay hidden">
     <div class="end-modal">
       <h1 style="color: var(--primary);">SELECT YOUR FIGHTER</h1>
       <p>Clicking a character will start your journey.</p>
       <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
         <button class="char-select-btn" onclick="selectCharacter('Goku')">
-          <img src="https://static.wikia.nocookie.net/dragonball/images/5/5b/Goku_Artwork_DBZ.png" onerror="this.src='https://placehold.co/150x150/ffaa00/000?text=Goku'" alt="Goku" class="portrait">
+          <img src="https://static.wikia.nocookie.net/dragonball/images/5/5b/Goku_Artwork_DBZ.png" onerror="this.onerror=null; this.src='https://placehold.co/150x150/ffaa00/000?text=Goku'" alt="Goku" class="portrait">
           GOKU<br><small>Balanced (+10 Spec)</small>
         </button>
         <button class="char-select-btn" onclick="selectCharacter('Vegeta')">
-          <img src="https://static.wikia.nocookie.net/dragonball/images/8/87/Vegeta_Artwork_DBZ.png" onerror="this.src='https://placehold.co/150x150/2244cc/fff?text=Vegeta'" alt="Vegeta" class="portrait">
+          <img src="https://static.wikia.nocookie.net/dragonball/images/8/87/Vegeta_Artwork_DBZ.png" onerror="this.onerror=null; this.src='https://placehold.co/150x150/2244cc/fff?text=Vegeta'" alt="Vegeta" class="portrait">
           VEGETA<br><small>Aggressive (+1 Power)</small>
         </button>
         <button class="char-select-btn" onclick="selectCharacter('Gohan')">
-          <img src="https://static.wikia.nocookie.net/dragonball/images/1/14/Gohan_Artwork_DBZ.png" onerror="this.src='https://placehold.co/150x150/5522aa/fff?text=Gohan'" alt="Gohan" class="portrait">
+          <img src="https://static.wikia.nocookie.net/dragonball/images/1/14/Gohan_Artwork_DBZ.png" onerror="this.onerror=null; this.src='https://placehold.co/150x150/5522aa/fff?text=Gohan'" alt="Gohan" class="portrait">
           GOHAN<br><small>Defensive (+1 Guard)</small>
         </button>
       </div>
@@ -282,7 +288,6 @@
     <button id="use-bean-btn" class="use-item-btn" onclick="useSenzuBean()">Eat Bean (+50 HP)</button>
   </div>
 
-  <!-- MAP ARENA -->
   <div id="map-arena" class="hidden">
     <h2>Story Route: The Saiyan Arrival</h2>
     <h3 id="map-player-level" style="color: var(--primary);">Level: 1</h3>
@@ -296,13 +301,11 @@
     <div id="board-track-container">
       <div id="map-content">
         <svg id="map-lines"></svg>
-        <div id="player-token" class="player-token">🐉</div>
-        <!-- Nodes injected here via JS -->
+        <!-- The player token is generated safely inside the JS now -->
       </div>
     </div>
   </div>
 
-  <!-- EVENT MODAL -->
   <div id="event-screen" class="overlay hidden">
     <div class="end-modal" style="border-color: #5c6bc0;">
       <h1 id="event-title" style="color: #5c6bc0;">MESSAGE</h1>
@@ -311,28 +314,25 @@
     </div>
   </div>
 
-  <!-- COMBAT ARENA -->
   <div id="combat-arena" class="hidden">
     <div id="combat-log">A wild enemy appeared!</div>
     <div class="combat-layout">
-      <!-- Player -->
+      
       <div class="fighter-stats">
-        <img id="player-portrait" src="https://placehold.co/150x150/ffaa00/000?text=Player" class="combat-portrait">
+        <img id="player-portrait" src="https://placehold.co/150x150/ffaa00/000?text=Player" class="combat-portrait" onerror="this.onerror=null; this.src='https://placehold.co/150x150/ffaa00/000?text=Player'">
         <h3 id="combat-player-level">Player</h3>
         <div class="health-bar-container"><div id="player-health-fill" class="health-fill player-color"></div></div>
         <p>HP: <span id="player-hp-text">100 / 100</span></p>
       </div>
 
-      <!-- Clash Zone -->
       <div id="clash-zone">
         <div id="player-active-card" class="card-slot"><p class="placeholder-text">Your Card</p></div>
         <div class="vs-text">VS</div>
         <div id="enemy-active-card" class="card-slot"><p class="placeholder-text">Enemy Card</p></div>
       </div>
 
-      <!-- Enemy -->
       <div class="fighter-stats">
-        <img id="enemy-portrait" src="https://placehold.co/150x150/228B22/fff?text=Enemy" class="combat-portrait">
+        <img id="enemy-portrait" src="https://static.wikia.nocookie.net/dragonball/images/3/30/Saibamen.png" class="combat-portrait" onerror="this.onerror=null; this.src='https://placehold.co/150x150/228B22/fff?text=Enemy'">
         <h3 id="enemy-name">Saibaman</h3>
         <div class="health-bar-container"><div id="enemy-health-fill" class="health-fill enemy-color"></div></div>
         <p>HP: <span id="enemy-hp-text">40 / 40</span></p>
@@ -343,7 +343,6 @@
   <h2 id="hand-title" class="hidden">Your Combat Hand</h2>
   <div id="player-hand" class="hand-container hidden"></div>
 
-  <!-- GAME OVER / VICTORY OVERLAY -->
   <div id="end-screen" class="overlay hidden">
     <div class="end-modal">
       <h1 id="end-title-result">GAME OVER</h1>
@@ -353,11 +352,12 @@
   </div>
 
 <script>
-  const GAME_VERSION = 8;
+  const GAME_VERSION = 9;
   console.log(`%c DBZ Card RPG Loaded - Running Version ${GAME_VERSION} `, "background: #ffaa00; color: #000; font-weight: bold;");
 
   const ACTION_ICONS = { 'melee': '👊', 'ki_blast': '💥', 'defend': '🛡️', 'recover': '💊', 'special': '✨' };
   
+  // Real DBZ Character art, bypassing hotlink restrictions!
   const PORTRAITS = {
     'Goku': 'https://static.wikia.nocookie.net/dragonball/images/5/5b/Goku_Artwork_DBZ.png',
     'Vegeta': 'https://static.wikia.nocookie.net/dragonball/images/8/87/Vegeta_Artwork_DBZ.png',
@@ -417,7 +417,6 @@
   let playerDeck = [];
   let playerHand = [];
 
-  // Graph structured map with X,Y coords for plotting
   const mapNodes = {
     0:  { id: 0,  type: 'start',     next: [1, 2],    x: 40,  y: 125, icon: '🏠' },
     1:  { id: 1,  type: 'encounter', next: [3, 4],    x: 180, y: 50,  icon: '❗' },
@@ -473,7 +472,7 @@
     
     const portraitEl = document.getElementById('player-portrait');
     portraitEl.src = PORTRAITS[charName] || `https://placehold.co/150x150/ffaa00/000?text=${charName}`;
-    portraitEl.onerror = function() { this.src = `https://placehold.co/150x150/ffaa00/000?text=${charName}`; };
+    portraitEl.onerror = function() { this.onerror=null; this.src = `https://placehold.co/150x150/ffaa00/000?text=${charName}`; };
 
     document.getElementById('character-screen').classList.add('hidden');
     document.getElementById('inventory-hud').classList.remove('hidden');
@@ -530,7 +529,6 @@
     document.getElementById('roll-btn').disabled = false;
     document.getElementById('dice-msg').innerText = "Roll the dice to navigate the branching paths!";
     
-    // Hide combat hand while on map
     document.getElementById('player-hand').classList.add('hidden');
     document.getElementById('hand-title').classList.add('hidden');
     
@@ -541,20 +539,23 @@
     const content = document.getElementById('map-content');
     const svgLines = document.getElementById('map-lines');
     
-    // Clear old nodes, keeping SVG and Token
+    // Safely detach the token to prevent accidental deletion
+    let token = document.getElementById('player-token');
+    if (token) {
+      content.removeChild(token);
+    }
+
+    // Clear old nodes securely
     Array.from(content.children).forEach(el => {
-      if(el.id !== 'map-lines' && el.id !== 'player-token') el.remove();
+      if(el.id !== 'map-lines') el.remove();
     });
     
     svgLines.innerHTML = ''; 
 
-    // Draw Lines and Nodes
     Object.values(mapNodes).forEach(node => {
-      // SVG Lines to children
       node.next.forEach(nextId => {
         let nextNode = mapNodes[nextId];
         let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        // Center of 50x50 tile is +25
         line.setAttribute("x1", node.x + 25);
         line.setAttribute("y1", node.y + 25);
         line.setAttribute("x2", nextNode.x + 25);
@@ -564,7 +565,6 @@
         svgLines.appendChild(line);
       });
 
-      // Node Div
       let div = document.createElement('div');
       div.className = `map-tile tile-${node.type}`;
       div.id = `node-${node.id}`;
@@ -574,12 +574,21 @@
       content.appendChild(div);
     });
 
-    // Place Token instantly (no transition on render to avoid flying from 0,0 on load)
-    let token = document.getElementById('player-token');
+    // Safely re-attach token to DOM
+    if (!token) {
+      token = document.createElement('div');
+      token.id = 'player-token';
+      token.className = 'player-token';
+      token.innerText = '🐉';
+      token.style.transition = 'none'; // No transition on initial placement
+    }
+    content.appendChild(token);
+
     let pNode = mapNodes[playerPosition];
-    token.style.transition = 'none';
     token.style.left = `${pNode.x + 5}px`;
     token.style.top = `${pNode.y - 20}px`;
+    
+    // Give DOM time to update before re-enabling transition
     setTimeout(() => { token.style.transition = 'left 0.6s ease-in-out, top 0.6s ease-in-out'; }, 50);
 
     document.getElementById('map-player-level').innerText = `${playerStats.name} Level: ${playerStats.level} (Atk +${playerStats.powerBonus} | Def +${playerStats.guardBonus})`;
@@ -614,7 +623,6 @@
     }, 50);
   }
 
-  // BFS to find valid exact landing spots
   function findReachable(startId, steps) {
     let currentSet = new Set([startId]);
     for (let i = 0; i < steps; i++) {
@@ -622,7 +630,6 @@
         for (let id of currentSet) {
             let node = mapNodes[id];
             if (node.next.length === 0) {
-                // Dead end / Boss - you stop here even if steps remain
                 nextStep.add(id);
             } else {
                 for (let nextId of node.next) {
@@ -665,12 +672,10 @@
     playerPosition = id;
     let targetNode = mapNodes[id];
     
-    // Animate Token
     let token = document.getElementById('player-token');
     token.style.left = `${targetNode.x + 5}px`; 
     token.style.top = `${targetNode.y - 20}px`;
     
-    // Auto-scroll track
     document.getElementById('board-track-container').scrollLeft = Math.max(0, targetNode.x - 300);
     document.getElementById('dice-msg').innerText = "Moving...";
     
@@ -705,7 +710,7 @@
       triggerMapEvent(); 
     } 
     else {
-      resetMapIdle(); // empty/start
+      resetMapIdle(); 
     }
   }
 
@@ -737,7 +742,7 @@
     document.getElementById('enemy-name').innerText = name;
     const enemyImg = document.getElementById('enemy-portrait');
     enemyImg.src = PORTRAITS[name] || `https://placehold.co/150x150/228B22/fff?text=${name}`;
-    enemyImg.onerror = function() { this.src = `https://placehold.co/150x150/228B22/fff?text=${name}`; };
+    enemyImg.onerror = function() { this.onerror=null; this.src = `https://placehold.co/150x150/228B22/fff?text=${name}`; };
     enemyImg.classList.remove('boss-enraged');
 
     document.getElementById('map-arena').classList.add('hidden');
@@ -883,7 +888,7 @@
     endScreen.classList.remove('hidden');
   }
 
-  // --- BOOT ---
+  // --- BOOT UP SYSTEM ---
   showTitleScreen();
 
 </script>
