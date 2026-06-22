@@ -3,12 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- CRITICAL FIX: This meta tag allows DBZ Wiki images to load without being blocked! -->
+<!-- CRITICAL FIX: Bypass standard strict referrers to allow proxying -->
 <meta name="referrer" content="no-referrer">
-<title>DBZ RPG Card Game - v9</title>
+<title>DBZ RPG Card Game - v10</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 <style>
-  /* --- GLOBAL STYLES --- */
   :root {
     --primary: #ffaa00;
     --primary-dark: #cc8800;
@@ -40,7 +39,6 @@
 
   .hidden { display: none !important; }
 
-  /* --- OVERLAYS --- */
   .overlay {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background-color: rgba(0, 0, 0, 0.95); display: flex;
@@ -97,7 +95,6 @@
     filter: drop-shadow(0 0 10px red) sepia(0.5) hue-rotate(-50deg) saturate(2); 
   }
 
-  /* --- MAP UI --- */
   #map-arena {
     background-color: var(--panel-bg); padding: 20px; border-radius: 10px;
     margin-bottom: 20px; width: 100%; max-width: 800px;
@@ -121,7 +118,6 @@
     overflow-x: auto; overflow-y: hidden; position: relative;
     width: 100%; height: 320px; border: 2px solid #333;
     scroll-behavior: smooth;
-    /* Adding a subtle grid background to make the map look better */
     background-image: radial-gradient(#333 1px, transparent 1px);
     background-size: 20px 20px;
   }
@@ -131,7 +127,8 @@
     width: 1000px; height: 320px; 
   }
 
-  #map-lines {
+  /* Canvas styling replaces the buggy SVG! */
+  #map-lines-canvas {
     position: absolute; top: 0; left: 0; width: 1000px; height: 320px;
     pointer-events: none; z-index: 1;
   }
@@ -164,8 +161,7 @@
 
   .player-token {
     position: absolute; font-size: 40px; text-shadow: 0 0 10px #fff;
-    z-index: 20; transition: left 0.6s ease-in-out, top 0.6s ease-in-out;
-    pointer-events: none; 
+    z-index: 20; pointer-events: none; 
   }
 
   #inventory-hud {
@@ -181,7 +177,6 @@
   }
   .use-item-btn:hover { background-color: #28a428; }
 
-  /* --- COMBAT UI --- */
   #combat-arena {
     display: flex; flex-direction: column; align-items: center; background-color: #2a2a2a;
     border: 3px solid var(--primary); padding: 20px; border-radius: 10px; margin-bottom: 30px;
@@ -250,12 +245,11 @@
 </head>
 <body>
 
-  <div id="version-tag">Version: 9</div>
+  <div id="version-tag">Version: 10</div>
 
   <div id="title-screen" class="overlay">
     <div class="end-modal">
-      <!-- Fixed the onerror to prevent infinite loops -->
-      <img src="https://upload.wikimedia.org/wikipedia/en/c/c4/Dragon_Ball_Z_vol_1.jpg" alt="DBZ Manga Cover" class="title-cover-img" onerror="this.onerror=null; this.src='https://placehold.co/250x350/111/ffaa00?text=Dragon+Ball+Z'">
+      <img id="title-cover" src="https://images.weserv.nl/?url=upload.wikimedia.org/wikipedia/en/c/c4/Dragon_Ball_Z_vol_1.jpg" alt="DBZ Manga Cover" class="title-cover-img" onerror="this.onerror=null; this.src='https://placehold.co/250x350/111/ffaa00?text=Dragon+Ball+Z'">
       <h1 style="color: var(--primary); text-shadow: 2px 2px #000; margin: 0; font-size: 40px;">DRAGON BALL Z</h1>
       <h2 style="color: #fff; margin-top: 5px; font-weight: normal; font-size: 22px;">Harukanaru Goku Densetsu</h2>
       <button class="btn" onclick="showCharacterSelectFromTitle()">START GAME</button>
@@ -268,15 +262,15 @@
       <p>Clicking a character will start your journey.</p>
       <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
         <button class="char-select-btn" onclick="selectCharacter('Goku')">
-          <img src="https://static.wikia.nocookie.net/dragonball/images/5/5b/Goku_Artwork_DBZ.png" onerror="this.onerror=null; this.src='https://placehold.co/150x150/ffaa00/000?text=Goku'" alt="Goku" class="portrait">
+          <img id="sel-goku" src="https://images.weserv.nl/?url=static.wikia.nocookie.net/dragonball/images/5/5b/Goku_Artwork_DBZ.png" onerror="this.onerror=null; this.src='https://placehold.co/150x150/ffaa00/000?text=Goku'" alt="Goku" class="portrait">
           GOKU<br><small>Balanced (+10 Spec)</small>
         </button>
         <button class="char-select-btn" onclick="selectCharacter('Vegeta')">
-          <img src="https://static.wikia.nocookie.net/dragonball/images/8/87/Vegeta_Artwork_DBZ.png" onerror="this.onerror=null; this.src='https://placehold.co/150x150/2244cc/fff?text=Vegeta'" alt="Vegeta" class="portrait">
+          <img id="sel-vegeta" src="https://images.weserv.nl/?url=static.wikia.nocookie.net/dragonball/images/8/87/Vegeta_Artwork_DBZ.png" onerror="this.onerror=null; this.src='https://placehold.co/150x150/2244cc/fff?text=Vegeta'" alt="Vegeta" class="portrait">
           VEGETA<br><small>Aggressive (+1 Power)</small>
         </button>
         <button class="char-select-btn" onclick="selectCharacter('Gohan')">
-          <img src="https://static.wikia.nocookie.net/dragonball/images/1/14/Gohan_Artwork_DBZ.png" onerror="this.onerror=null; this.src='https://placehold.co/150x150/5522aa/fff?text=Gohan'" alt="Gohan" class="portrait">
+          <img id="sel-gohan" src="https://images.weserv.nl/?url=static.wikia.nocookie.net/dragonball/images/1/14/Gohan_Artwork_DBZ.png" onerror="this.onerror=null; this.src='https://placehold.co/150x150/5522aa/fff?text=Gohan'" alt="Gohan" class="portrait">
           GOHAN<br><small>Defensive (+1 Guard)</small>
         </button>
       </div>
@@ -300,8 +294,8 @@
 
     <div id="board-track-container">
       <div id="map-content">
-        <svg id="map-lines"></svg>
-        <!-- The player token is generated safely inside the JS now -->
+        <!-- CRITICAL FIX: Removed buggy SVG completely. Canvas is 100% crash proof. -->
+        <canvas id="map-lines-canvas" width="1000" height="320"></canvas>
       </div>
     </div>
   </div>
@@ -332,7 +326,7 @@
       </div>
 
       <div class="fighter-stats">
-        <img id="enemy-portrait" src="https://static.wikia.nocookie.net/dragonball/images/3/30/Saibamen.png" class="combat-portrait" onerror="this.onerror=null; this.src='https://placehold.co/150x150/228B22/fff?text=Enemy'">
+        <img id="enemy-portrait" src="https://placehold.co/150x150/228B22/fff?text=Enemy" class="combat-portrait" onerror="this.onerror=null; this.src='https://placehold.co/150x150/228B22/fff?text=Enemy'">
         <h3 id="enemy-name">Saibaman</h3>
         <div class="health-bar-container"><div id="enemy-health-fill" class="health-fill enemy-color"></div></div>
         <p>HP: <span id="enemy-hp-text">40 / 40</span></p>
@@ -352,19 +346,20 @@
   </div>
 
 <script>
-  const GAME_VERSION = 9;
+  const GAME_VERSION = 10;
   console.log(`%c DBZ Card RPG Loaded - Running Version ${GAME_VERSION} `, "background: #ffaa00; color: #000; font-weight: bold;");
 
   const ACTION_ICONS = { 'melee': '👊', 'ki_blast': '💥', 'defend': '🛡️', 'recover': '💊', 'special': '✨' };
   
-  // Real DBZ Character art, bypassing hotlink restrictions!
+  // WESERV IMAGE PROXY: Completely bypasses Wikia/Fandom Hotlink protection safely!
+  const WESERV = "https://images.weserv.nl/?url=";
   const PORTRAITS = {
-    'Goku': 'https://static.wikia.nocookie.net/dragonball/images/5/5b/Goku_Artwork_DBZ.png',
-    'Vegeta': 'https://static.wikia.nocookie.net/dragonball/images/8/87/Vegeta_Artwork_DBZ.png',
-    'Gohan': 'https://static.wikia.nocookie.net/dragonball/images/1/14/Gohan_Artwork_DBZ.png',
-    'Saibaman': 'https://static.wikia.nocookie.net/dragonball/images/3/30/Saibamen.png',
-    'Raditz': 'https://static.wikia.nocookie.net/dragonball/images/1/1b/Raditz_Artwork_DBZ.png',
-    'RaditzStage2': 'https://static.wikia.nocookie.net/dragonball/images/1/1b/Raditz_Artwork_DBZ.png'
+    'Goku': WESERV + 'static.wikia.nocookie.net/dragonball/images/5/5b/Goku_Artwork_DBZ.png',
+    'Vegeta': WESERV + 'static.wikia.nocookie.net/dragonball/images/8/87/Vegeta_Artwork_DBZ.png',
+    'Gohan': WESERV + 'static.wikia.nocookie.net/dragonball/images/1/14/Gohan_Artwork_DBZ.png',
+    'Saibaman': WESERV + 'static.wikia.nocookie.net/dragonball/images/3/30/Saibamen.png',
+    'Raditz': WESERV + 'static.wikia.nocookie.net/dragonball/images/1/1b/Raditz_Artwork_DBZ.png',
+    'RaditzStage2': WESERV + 'static.wikia.nocookie.net/dragonball/images/1/1b/Raditz_Artwork_DBZ.png'
   };
 
   const SFX = {
@@ -411,7 +406,7 @@
   }
 
   let gameState = 'TITLE'; // TITLE, MENU, MAP_IDLE, MAP_ROLLING, MAP_CHOOSE, MAP_MOVING, COMBAT, EVENT
-  let playerPosition = 0; // Current node ID
+  let playerPosition = 0; 
   let playerStats = { name: "Goku", level: 1, hp: 100, maxHp: 100, powerBonus: 0, guardBonus: 0, senzuBeans: 0 };
   let enemyStats = { hp: 40, maxHp: 40, name: "Saibaman", isBoss: false, stage: 1 };
   let playerDeck = [];
@@ -528,43 +523,43 @@
     gameState = 'MAP_IDLE';
     document.getElementById('roll-btn').disabled = false;
     document.getElementById('dice-msg').innerText = "Roll the dice to navigate the branching paths!";
-    
     document.getElementById('player-hand').classList.add('hidden');
     document.getElementById('hand-title').classList.add('hidden');
-    
     renderMap();
   }
 
   function renderMap() {
     const content = document.getElementById('map-content');
-    const svgLines = document.getElementById('map-lines');
+    const canvas = document.getElementById('map-lines-canvas');
+    const ctx = canvas.getContext('2d');
     
-    // Safely detach the token to prevent accidental deletion
-    let token = document.getElementById('player-token');
-    if (token) {
-      content.removeChild(token);
-    }
-
-    // Clear old nodes securely
-    Array.from(content.children).forEach(el => {
-      if(el.id !== 'map-lines') el.remove();
-    });
-    
-    svgLines.innerHTML = ''; 
+    // 1. Draw Paths safely on Canvas (Prevents SVG DOM Exceptions)
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "#555";
+    ctx.lineWidth = 4;
+    ctx.setLineDash([8, 8]); // Dashed paths
 
     Object.values(mapNodes).forEach(node => {
       node.next.forEach(nextId => {
         let nextNode = mapNodes[nextId];
-        let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.setAttribute("x1", node.x + 25);
-        line.setAttribute("y1", node.y + 25);
-        line.setAttribute("x2", nextNode.x + 25);
-        line.setAttribute("y2", nextNode.y + 25);
-        line.setAttribute("stroke", "#555");
-        line.setAttribute("stroke-width", "4");
-        svgLines.appendChild(line);
+        ctx.beginPath();
+        ctx.moveTo(node.x + 25, node.y + 25);
+        ctx.lineTo(nextNode.x + 25, nextNode.y + 25);
+        ctx.stroke();
       });
+    });
 
+    // 2. Safely detach the token
+    let token = document.getElementById('player-token');
+    if (token) content.removeChild(token);
+
+    // 3. Clear old Nodes
+    Array.from(content.children).forEach(el => {
+      if(el.id !== 'map-lines-canvas') el.remove();
+    });
+
+    // 4. Render new Nodes
+    Object.values(mapNodes).forEach(node => {
       let div = document.createElement('div');
       div.className = `map-tile tile-${node.type}`;
       div.id = `node-${node.id}`;
@@ -574,13 +569,13 @@
       content.appendChild(div);
     });
 
-    // Safely re-attach token to DOM
+    // 5. Re-attach and position token
     if (!token) {
       token = document.createElement('div');
       token.id = 'player-token';
       token.className = 'player-token';
       token.innerText = '🐉';
-      token.style.transition = 'none'; // No transition on initial placement
+      token.style.transition = 'none';
     }
     content.appendChild(token);
 
@@ -588,9 +583,7 @@
     token.style.left = `${pNode.x + 5}px`;
     token.style.top = `${pNode.y - 20}px`;
     
-    // Give DOM time to update before re-enabling transition
     setTimeout(() => { token.style.transition = 'left 0.6s ease-in-out, top 0.6s ease-in-out'; }, 50);
-
     document.getElementById('map-player-level').innerText = `${playerStats.name} Level: ${playerStats.level} (Atk +${playerStats.powerBonus} | Def +${playerStats.guardBonus})`;
   }
 
@@ -629,13 +622,8 @@
         let nextStep = new Set();
         for (let id of currentSet) {
             let node = mapNodes[id];
-            if (node.next.length === 0) {
-                nextStep.add(id);
-            } else {
-                for (let nextId of node.next) {
-                    nextStep.add(nextId);
-                }
-            }
+            if (node.next.length === 0) nextStep.add(id);
+            else for (let nextId of node.next) nextStep.add(nextId);
         }
         currentSet = nextStep;
     }
@@ -644,7 +632,6 @@
 
   function highlightReachable(steps) {
     reachableNodes = findReachable(playerPosition, steps);
-    
     document.querySelectorAll('.map-tile').forEach(el => el.classList.remove('reachable', 'pulse'));
     
     reachableNodes.forEach(id => {
@@ -786,6 +773,44 @@
     return deck;
   }
 
+  function renderHand() {
+    const container = document.getElementById('player-hand');
+    container.innerHTML = ''; 
+    playerHand.forEach(card => {
+      const div = document.createElement('div');
+      div.className = 'card'; div.id = card.id; 
+      
+      let pStr = card.displayPower;
+      if (playerStats.powerBonus > 0 && card.power !== 8) pStr = `${card.power}+${playerStats.powerBonus}`;
+      let gStr = card.displayGuard;
+      if (playerStats.guardBonus > 0 && card.guard !== 8) gStr = `${card.guard}+${playerStats.guardBonus}`;
+
+      div.innerHTML = `<div class="power">${pStr}</div><div class="action">${ACTION_ICONS[card.actionType]}</div><div class="guard">${gStr}</div>`;
+      div.addEventListener('click', () => {
+        if (gameState === 'COMBAT') playCard(card);
+      });
+      container.appendChild(div);
+    });
+  }
+
+  function updateUI(playerCard, enemyCard) {
+    document.getElementById('player-health-fill').style.width = `${Math.max(0, (playerStats.hp / playerStats.maxHp) * 100)}%`;
+    document.getElementById('enemy-health-fill').style.width = `${Math.max(0, (enemyStats.hp / enemyStats.maxHp) * 100)}%`;
+    document.getElementById('player-hp-text').innerText = `${playerStats.hp} / ${playerStats.maxHp}`;
+    document.getElementById('enemy-hp-text').innerText = `${enemyStats.hp} / ${enemyStats.maxHp}`;
+    document.getElementById('combat-player-level').innerText = `${playerStats.name} (Lvl ${playerStats.level})`;
+
+    if (playerCard && enemyCard) {
+      let pDisplay = playerCard.power === '?' ? '?' : (playerCard.power === 8 ? 'Z' : (playerCard.power + playerStats.powerBonus));
+      let gDisplay = playerCard.guard === '?' ? '?' : (playerCard.guard === 8 ? 'Z' : (playerCard.guard + playerStats.guardBonus));
+      let ePower = enemyCard.power === '?' ? '?' : (enemyCard.power === 8 ? 'Z' : enemyCard.power);
+      let eGuard = enemyCard.guard === '?' ? '?' : (enemyCard.guard === 8 ? 'Z' : enemyCard.guard);
+
+      document.getElementById('player-active-card').innerHTML = `<div class="card" style="margin: 0; cursor: default;"><div class="power">${pDisplay}</div><div class="action">${ACTION_ICONS[playerCard.actionType] || ''}</div><div class="guard">${gDisplay}</div></div>`;
+      document.getElementById('enemy-active-card').innerHTML = `<div class="card" style="margin: 0; cursor: default; border-color: #dc143c;"><div class="power">${ePower}</div><div class="action">${ACTION_ICONS[enemyCard.actionType] || ''}</div><div class="guard">${eGuard}</div></div>`;
+    }
+  }
+
   function playCard(playerCard) {
     if(gameState !== 'COMBAT') return;
     let enemyPowerBonus = enemyStats.stage === 2 ? 2 : 0;
@@ -888,7 +913,7 @@
     endScreen.classList.remove('hidden');
   }
 
-  // --- BOOT UP SYSTEM ---
+  // Boot
   showTitleScreen();
 
 </script>
