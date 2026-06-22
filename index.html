@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DBZ RPG Card Game - v7</title>
-<!-- Fixed the broken Tone.js version to the modern 14.8.49 -->
+<title>DBZ RPG Card Game - v8</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 <style>
   :root {
@@ -62,8 +61,9 @@
     cursor: pointer; transition: background-color 0.2s, transform 0.1s;
     color: #000;
   }
-  .btn:hover { background-color: var(--primary-dark); }
-  .btn:active { transform: scale(0.95); }
+  .btn:hover:not(:disabled) { background-color: var(--primary-dark); }
+  .btn:active:not(:disabled) { transform: scale(0.95); }
+  .btn:disabled { background-color: #777; color: #aaa; cursor: not-allowed; }
 
   .char-select-btn {
     margin: 10px; padding: 15px; background-color: #333; color: white; 
@@ -73,17 +73,19 @@
   }
   .char-select-btn:hover { border-color: var(--primary); transform: scale(1.05); }
   
+  .portrait, .combat-portrait {
+    object-fit: cover; background-color: #111; object-position: center top;
+  }
+  
   .portrait {
     width: 120px; height: 120px; border-radius: 8px; border: 2px solid #000;
-    margin-bottom: 10px; object-fit: cover; background-color: #000;
-    background-position: center;
+    margin-bottom: 10px; background-position: center;
   }
   
   .combat-portrait {
     width: 100px; height: 100px; border-radius: 50%; border: 3px solid #777;
     margin-bottom: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.5);
-    transition: all 0.3s ease; object-fit: cover; background-color: #111;
-    object-position: center top;
+    transition: all 0.3s ease; 
   }
   .boss-enraged { 
     border-color: var(--hp-red); 
@@ -98,33 +100,66 @@
     text-align: center; box-shadow: 0 8px 16px rgba(0,0,0,0.5);
   }
 
-  #story-box {
-    background-color: #111; border: 1px solid #444; border-radius: 5px;
-    padding: 15px; margin: 15px 0; font-style: italic; color: #ddd;
-    min-height: 50px; display: flex; align-items: center; justify-content: center;
+  #dice-container {
+    background-color: #111; border: 2px solid #444; border-radius: 8px;
+    padding: 15px; margin: 15px auto; width: 80%; display: flex;
+    align-items: center; justify-content: space-around;
+  }
+  
+  #dice-visual {
+    font-size: 60px; line-height: 60px; color: var(--primary);
+    text-shadow: 0 0 10px rgba(255, 170, 0, 0.5);
+  }
+  #dice-msg { font-size: 16px; color: #aaa; flex-grow: 1; text-align: center; }
+
+  #board-track-container {
+    margin-top: 10px; background-color: #111; border-radius: 10px;
+    overflow-x: auto; overflow-y: hidden; position: relative;
+    width: 100%; height: 320px; border: 2px solid #333;
+    scroll-behavior: smooth;
   }
 
-  #board-track {
-    display: flex; gap: 8px; margin-top: 10px; padding: 15px;
-    background-color: #111; border-radius: 10px; overflow-x: auto;
+  #map-content {
+    position: absolute; top: 0; left: 0;
+    width: 1000px; height: 320px; /* Fixed internal size for absolute nodes */
+  }
+
+  #map-lines {
+    position: absolute; top: 0; left: 0; width: 1000px; height: 320px;
+    pointer-events: none; z-index: 1;
   }
 
   .map-tile {
-    min-width: 55px; height: 55px; background-color: #3a3a3a;
-    border: 2px solid var(--border-color); border-radius: 8px; display: flex;
-    align-items: center; justify-content: center; font-size: 22px; position: relative;
+    width: 50px; height: 50px; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center; font-size: 24px; 
+    position: absolute; z-index: 10; border: 3px solid var(--border-color);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.5); transition: all 0.2s;
   }
 
-  .tile-start { background-color: #2e7d32; border-color: #4caf50; } 
-  .tile-boss { background-color: #c62828; border-color: #ef5350; }  
-  .tile-encounter { border-color: #ff9800; background-color: #4e342e; } 
-  .tile-empty { border-color: #5c6bc0; background-color: #283593; } 
+  .tile-start { background-color: #20c997; border-color: #17a2b8; } 
+  .tile-boss { background-color: #dc3545; border-color: #c82333; }  
+  .tile-encounter { background-color: #fd7e14; border-color: #e8590c; } 
+  .tile-event { background-color: #17a2b8; border-color: #117a8b; } 
+  .tile-heal { background-color: #28a745; border-color: #1e7e34; } 
+  .tile-powerup { background-color: #6f42c1; border-color: #59359a; } 
+
+  .reachable {
+    box-shadow: 0 0 15px 5px #00ff00; border-color: #00ff00 !important;
+    cursor: pointer; z-index: 15;
+  }
+  
+  .pulse { animation: pulseGlow 1s infinite; }
+  @keyframes pulseGlow { 
+    0% { box-shadow: 0 0 10px #00ff00; transform: scale(1); } 
+    50% { box-shadow: 0 0 25px #00ff00; transform: scale(1.1); } 
+    100% { box-shadow: 0 0 10px #00ff00; transform: scale(1); } 
+  }
 
   .player-token {
-    position: absolute; font-size: 36px; text-shadow: 0 0 5px #fff;
-    animation: bounce 0.6s infinite alternate; z-index: 10;
+    position: absolute; font-size: 40px; text-shadow: 0 0 10px #fff;
+    z-index: 20; transition: left 0.6s ease-in-out, top 0.6s ease-in-out;
+    pointer-events: none; /* Let clicks pass through to tiles */
   }
-  @keyframes bounce { from { transform: translateY(0px); } to { transform: translateY(-8px); } }
 
   #inventory-hud {
     background-color: #333; border: 2px solid #777; border-radius: 8px;
@@ -146,10 +181,7 @@
     width: 100%; max-width: 800px; box-shadow: 0 8px 16px rgba(0,0,0,0.5);
   }
 
-  .combat-layout {
-    display: flex; width: 100%; justify-content: space-between; align-items: center;
-  }
-
+  .combat-layout { display: flex; width: 100%; justify-content: space-between; align-items: center; }
   .fighter-stats { width: 30%; text-align: center; }
 
   .health-bar-container {
@@ -158,8 +190,6 @@
   }
 
   .health-fill { height: 100%; width: 100%; transition: width 0.4s ease-in-out; }
-  .player-color { background-color: var(--hp-green); }
-  .enemy-color { background-color: var(--hp-red); }
 
   #clash-zone { display: flex; align-items: center; gap: 15px; margin: 20px 0; width: 40%; justify-content: center;}
 
@@ -189,12 +219,11 @@
     width: 110px; height: 160px; background-color: #fdfdfd; border: 3px solid #444;
     border-radius: 8px; position: relative; cursor: pointer; color: #000;
     box-shadow: 0 4px 8px rgba(0,0,0,0.3); transition: transform 0.2s ease-in-out, border-color 0.2s; user-select: none;
+    z-index: 50;
   }
-  .card:hover { transform: translateY(-15px); border-color: var(--primary); }
+  .card:hover { transform: translateY(-15px); border-color: var(--primary); z-index: 60;}
 
-  .power, .guard {
-    position: absolute; display: flex; align-items: center; justify-content: center; font-weight: bold;
-  }
+  .power, .guard { position: absolute; display: flex; align-items: center; justify-content: center; font-weight: bold; }
   .power {
     top: 5px; left: 5px; background-color: var(--primary); color: #fff;
     border: 2px solid #cc2200; border-radius: 50%; width: 28px; height: 28px;
@@ -203,9 +232,7 @@
     bottom: 5px; right: 5px; background-color: var(--mana-blue); color: #000;
     border: 2px solid #00008b; padding: 2px 6px; border-radius: 4px;
   }
-  .action {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 36px;
-  }
+  .action { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 36px; }
 
   @media (max-width: 600px) {
     .combat-layout { flex-direction: column; }
@@ -216,9 +243,9 @@
 </head>
 <body>
 
-  <div id="version-tag">Version: 7</div>
+  <div id="version-tag">Version: 8</div>
 
-  <!-- NEW TITLE SCREEN -->
+  <!-- TITLE SCREEN -->
   <div id="title-screen" class="overlay">
     <div class="end-modal">
       <img src="https://upload.wikimedia.org/wikipedia/en/c/c4/Dragon_Ball_Z_vol_1.jpg" alt="DBZ Manga Cover" class="title-cover-img" onerror="this.src='https://placehold.co/250x350/111/ffaa00?text=Dragon+Ball+Z'">
@@ -255,14 +282,27 @@
     <button id="use-bean-btn" class="use-item-btn" onclick="useSenzuBean()">Eat Bean (+50 HP)</button>
   </div>
 
+  <!-- MAP ARENA -->
   <div id="map-arena" class="hidden">
     <h2>Story Route: The Saiyan Arrival</h2>
-    <div id="story-box">The journey begins...</div>
     <h3 id="map-player-level" style="color: var(--primary);">Level: 1</h3>
-    <div id="board-track"></div>
+    
+    <div id="dice-container">
+      <div id="dice-visual">⚀</div>
+      <p id="dice-msg">Roll the dice to navigate the branching paths!</p>
+      <button class="btn" id="roll-btn" style="margin-top: 0; padding: 10px 20px;" onclick="rollDice()">ROLL DICE</button>
+    </div>
+
+    <div id="board-track-container">
+      <div id="map-content">
+        <svg id="map-lines"></svg>
+        <div id="player-token" class="player-token">🐉</div>
+        <!-- Nodes injected here via JS -->
+      </div>
+    </div>
   </div>
 
-  <!-- IN-GAME EVENT MODAL -->
+  <!-- EVENT MODAL -->
   <div id="event-screen" class="overlay hidden">
     <div class="end-modal" style="border-color: #5c6bc0;">
       <h1 id="event-title" style="color: #5c6bc0;">MESSAGE</h1>
@@ -274,9 +314,7 @@
   <!-- COMBAT ARENA -->
   <div id="combat-arena" class="hidden">
     <div id="combat-log">A wild enemy appeared!</div>
-
     <div class="combat-layout">
-      
       <!-- Player -->
       <div class="fighter-stats">
         <img id="player-portrait" src="https://placehold.co/150x150/ffaa00/000?text=Player" class="combat-portrait">
@@ -299,11 +337,10 @@
         <div class="health-bar-container"><div id="enemy-health-fill" class="health-fill enemy-color"></div></div>
         <p>HP: <span id="enemy-hp-text">40 / 40</span></p>
       </div>
-
     </div>
   </div>
 
-  <h2 id="hand-title" class="hidden">Your Hand</h2>
+  <h2 id="hand-title" class="hidden">Your Combat Hand</h2>
   <div id="player-hand" class="hand-container hidden"></div>
 
   <!-- GAME OVER / VICTORY OVERLAY -->
@@ -316,12 +353,11 @@
   </div>
 
 <script>
-  const GAME_VERSION = 7;
+  const GAME_VERSION = 8;
   console.log(`%c DBZ Card RPG Loaded - Running Version ${GAME_VERSION} `, "background: #ffaa00; color: #000; font-weight: bold;");
 
   const ACTION_ICONS = { 'melee': '👊', 'ki_blast': '💥', 'defend': '🛡️', 'recover': '💊', 'special': '✨' };
   
-  // Real Manga/Anime Portraits with fallback safety
   const PORTRAITS = {
     'Goku': 'https://static.wikia.nocookie.net/dragonball/images/5/5b/Goku_Artwork_DBZ.png',
     'Vegeta': 'https://static.wikia.nocookie.net/dragonball/images/8/87/Vegeta_Artwork_DBZ.png',
@@ -331,7 +367,6 @@
     'RaditzStage2': 'https://static.wikia.nocookie.net/dragonball/images/1/1b/Raditz_Artwork_DBZ.png'
   };
 
-  // Fixed Sound Engine using modern Tone.js syntax safely wrapped
   const SFX = {
     initialized: false,
     synth: null,
@@ -345,22 +380,11 @@
         this.synth.set({ envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.1 }});
         this.memSynth = new Tone.MembraneSynth().toDestination();
         this.initialized = true;
-      } catch(e) {
-        console.warn("Audio initialization failed. Playing in silent mode.", e);
-      }
+      } catch(e) { console.warn("Audio initialization failed. Playing in silent mode.", e); }
     },
-    playClick: function() {
-      if(!this.initialized) return;
-      this.synth.triggerAttackRelease("C5", "32n");
-    },
-    playHit: function() {
-      if(!this.initialized) return;
-      this.memSynth.triggerAttackRelease("C2", "8n");
-    },
-    playDamage: function() {
-      if(!this.initialized) return;
-      this.synth.triggerAttackRelease(["C3", "D#3"], "16n");
-    },
+    playClick: function() { if(this.initialized) this.synth.triggerAttackRelease("C5", "32n"); },
+    playHit: function() { if(this.initialized) this.memSynth.triggerAttackRelease("C2", "8n"); },
+    playDamage: function() { if(this.initialized) this.synth.triggerAttackRelease(["C3", "D#3"], "16n"); },
     playHeal: function() {
       if(!this.initialized) return;
       const now = Tone.now();
@@ -386,33 +410,35 @@
     get displayGuard() { return this.guard === 8 ? 'Z' : this.guard.toString(); }
   }
 
-  let gameState = 'TITLE';
-  let playerPosition = 0;
+  let gameState = 'TITLE'; // TITLE, MENU, MAP_IDLE, MAP_ROLLING, MAP_CHOOSE, MAP_MOVING, COMBAT, EVENT
+  let playerPosition = 0; // Current node ID
   let playerStats = { name: "Goku", level: 1, hp: 100, maxHp: 100, powerBonus: 0, guardBonus: 0, senzuBeans: 0 };
   let enemyStats = { hp: 40, maxHp: 40, name: "Saibaman", isBoss: false, stage: 1 };
   let playerDeck = [];
   let playerHand = [];
 
-  const storyMap = [
-    { type: 'start', story: "A pod has crashed on Earth. You sense a massive power level..." }, 
-    { type: 'empty', story: "The wasteland is quiet, but danger lurks." }, 
-    { type: 'encounter', story: "Ambush! Saibamen crawl from the dirt!" }, 
-    { type: 'empty', story: "You press forward toward the crash site." },
-    { type: 'encounter', story: "Another Saibaman blocks your path!" }, 
-    { type: 'empty', story: "You can feel the enemy's ki getting closer." }, 
-    { type: 'encounter', story: "A fierce Saibaman attacks!" }, 
-    { type: 'empty', story: "The crater is just ahead." },
-    { type: 'empty', story: "There he is... The Saiyan invader." }, 
-    { type: 'boss', story: "Raditz: 'You're a disgrace to the Saiyan race!'" }
-  ];
+  // Graph structured map with X,Y coords for plotting
+  const mapNodes = {
+    0:  { id: 0,  type: 'start',     next: [1, 2],    x: 40,  y: 125, icon: '🏠' },
+    1:  { id: 1,  type: 'encounter', next: [3, 4],    x: 180, y: 50,  icon: '❗' },
+    2:  { id: 2,  type: 'event',     next: [4, 5],    x: 180, y: 200, icon: '❓' },
+    3:  { id: 3,  type: 'heal',      next: [6],       x: 320, y: 50,  icon: '💊' },
+    4:  { id: 4,  type: 'encounter', next: [6, 7],    x: 320, y: 125, icon: '❗' },
+    5:  { id: 5,  type: 'powerup',   next: [7],       x: 320, y: 200, icon: '💪' },
+    6:  { id: 6,  type: 'event',     next: [8],       x: 460, y: 50,  icon: '❓' },
+    7:  { id: 7,  type: 'encounter', next: [8, 9],    x: 460, y: 200, icon: '❗' },
+    8:  { id: 8,  type: 'powerup',   next: [10],      x: 600, y: 125, icon: '💪' },
+    9:  { id: 9,  type: 'heal',      next: [10],      x: 600, y: 200, icon: '💊' },
+    10: { id: 10, type: 'encounter', next: [11],      x: 740, y: 125, icon: '❗' },
+    11: { id: 11, type: 'boss',      next: [],        x: 880, y: 125, icon: '👹' }
+  };
+
+  let reachableNodes = [];
 
   function updateLog(message) { document.getElementById('combat-log').innerText = message; }
 
-  // --- UI NAVIGATION LOGIC ---
   function showTitleScreen() {
     gameState = 'TITLE';
-    
-    // Explicitly hide game elements
     document.getElementById('character-screen').classList.add('hidden');
     document.getElementById('map-arena').classList.add('hidden');
     document.getElementById('combat-arena').classList.add('hidden');
@@ -421,26 +447,19 @@
     document.getElementById('hand-title').classList.add('hidden');
     document.getElementById('end-screen').classList.add('hidden');
     document.getElementById('event-screen').classList.add('hidden');
-
-    // Show Title
     document.getElementById('title-screen').classList.remove('hidden');
   }
 
   async function showCharacterSelectFromTitle() {
-    // Await Audio Context directly from user's first click
     await SFX.init();
     SFX.playClick();
-    
     document.getElementById('title-screen').classList.add('hidden');
     document.getElementById('character-screen').classList.remove('hidden');
   }
 
   function selectCharacter(charName) {
     SFX.playClick();
-
-    playerStats.name = charName;
-    playerStats.level = 1;
-    playerStats.senzuBeans = 0;
+    playerStats.name = charName; playerStats.level = 1; playerStats.senzuBeans = 0;
     
     if (charName === 'Goku') {
       playerStats.maxHp = 100; playerStats.powerBonus = 0; playerStats.guardBonus = 0;
@@ -450,30 +469,26 @@
       playerStats.maxHp = 120; playerStats.powerBonus = 0; playerStats.guardBonus = 1;
     }
     
-    playerStats.hp = playerStats.maxHp;
-    playerPosition = 0;
+    playerStats.hp = playerStats.maxHp; playerPosition = 0;
     
-    // Set Portrait with safe fallback
     const portraitEl = document.getElementById('player-portrait');
     portraitEl.src = PORTRAITS[charName] || `https://placehold.co/150x150/ffaa00/000?text=${charName}`;
     portraitEl.onerror = function() { this.src = `https://placehold.co/150x150/ffaa00/000?text=${charName}`; };
 
-    // Explicitly reveal game UI
     document.getElementById('character-screen').classList.add('hidden');
     document.getElementById('inventory-hud').classList.remove('hidden');
     document.getElementById('map-arena').classList.remove('hidden');
-    document.getElementById('hand-title').classList.remove('hidden');
-    document.getElementById('player-hand').classList.remove('hidden');
 
     playerDeck = generateDeck(); playerHand = []; 
-    dealInitialHand(); renderMap(); updateInventoryUI();
+    dealInitialHand(); 
+    resetMapIdle();
+    updateInventoryUI();
   }
 
-  // --- MODALS ---
   let eventCallback = null;
   function showCustomModal(title, message, callback = null) {
     document.getElementById('event-title').innerText = title;
-    document.getElementById('event-title').style.color = (title === "LEVEL UP!") ? "#ffaa00" : "#5c6bc0";
+    document.getElementById('event-title').style.color = (title === "LEVEL UP!" || title === "TRAINING GROUNDS") ? "#ffaa00" : "#5c6bc0";
     document.getElementById('event-message').innerText = message;
     document.getElementById('event-screen').classList.remove('hidden');
     eventCallback = callback;
@@ -487,27 +502,6 @@
       eventCallback = null;
       tempCb();
     }
-  }
-
-  function generateDeck() {
-    let deck = []; let cardCounter = 1;
-    const dist = { 'melee': 15, 'ki_blast': 10, 'defend': 8, 'recover': 5, 'special': 2 };
-    for (const [action, count] of Object.entries(dist)) {
-      for (let i = 0; i < count; i++) {
-        deck.push(new Card(`DBZ-${cardCounter.toString().padStart(3, '0')}`, Math.floor(Math.random() * 8) + 1, Math.floor(Math.random() * 8) + 1, action));
-        cardCounter++;
-      }
-    }
-    for (let i = deck.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [deck[i], deck[j]] = [deck[j], deck[i]]; 
-    }
-    return deck;
-  }
-
-  function dealInitialHand() {
-    for (let i = 0; i < 5; i++) playerHand.push(playerDeck.pop());
-    renderHand();
   }
 
   function updateInventoryUI() {
@@ -531,82 +525,188 @@
     }
   }
 
+  function resetMapIdle() {
+    gameState = 'MAP_IDLE';
+    document.getElementById('roll-btn').disabled = false;
+    document.getElementById('dice-msg').innerText = "Roll the dice to navigate the branching paths!";
+    
+    // Hide combat hand while on map
+    document.getElementById('player-hand').classList.add('hidden');
+    document.getElementById('hand-title').classList.add('hidden');
+    
+    renderMap();
+  }
+
   function renderMap() {
-    const track = document.getElementById('board-track');
-    track.innerHTML = ''; 
-    storyMap.forEach((tile, idx) => {
-      let div = document.createElement('div');
-      div.className = `map-tile tile-${tile.type}`;
-      if (idx === playerPosition) div.innerHTML += `<div class="player-token">🐉</div>`;
-      if (tile.type === 'boss') div.innerHTML += `👹`; 
-      else if (tile.type === 'start') div.innerHTML += `🏠`; 
-      else if (tile.type === 'encounter') div.innerHTML += `❗`;
-      else if (tile.type === 'empty') div.innerHTML += `?`; 
-      track.appendChild(div);
+    const content = document.getElementById('map-content');
+    const svgLines = document.getElementById('map-lines');
+    
+    // Clear old nodes, keeping SVG and Token
+    Array.from(content.children).forEach(el => {
+      if(el.id !== 'map-lines' && el.id !== 'player-token') el.remove();
     });
     
-    document.getElementById('story-box').innerText = storyMap[playerPosition].story;
+    svgLines.innerHTML = ''; 
+
+    // Draw Lines and Nodes
+    Object.values(mapNodes).forEach(node => {
+      // SVG Lines to children
+      node.next.forEach(nextId => {
+        let nextNode = mapNodes[nextId];
+        let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        // Center of 50x50 tile is +25
+        line.setAttribute("x1", node.x + 25);
+        line.setAttribute("y1", node.y + 25);
+        line.setAttribute("x2", nextNode.x + 25);
+        line.setAttribute("y2", nextNode.y + 25);
+        line.setAttribute("stroke", "#555");
+        line.setAttribute("stroke-width", "4");
+        svgLines.appendChild(line);
+      });
+
+      // Node Div
+      let div = document.createElement('div');
+      div.className = `map-tile tile-${node.type}`;
+      div.id = `node-${node.id}`;
+      div.style.left = `${node.x}px`;
+      div.style.top = `${node.y}px`;
+      div.innerHTML = node.icon;
+      content.appendChild(div);
+    });
+
+    // Place Token instantly (no transition on render to avoid flying from 0,0 on load)
+    let token = document.getElementById('player-token');
+    let pNode = mapNodes[playerPosition];
+    token.style.transition = 'none';
+    token.style.left = `${pNode.x + 5}px`;
+    token.style.top = `${pNode.y - 20}px`;
+    setTimeout(() => { token.style.transition = 'left 0.6s ease-in-out, top 0.6s ease-in-out'; }, 50);
+
     document.getElementById('map-player-level').innerText = `${playerStats.name} Level: ${playerStats.level} (Atk +${playerStats.powerBonus} | Def +${playerStats.guardBonus})`;
   }
 
-  function renderHand() {
-    const container = document.getElementById('player-hand');
-    container.innerHTML = ''; 
-    playerHand.forEach(card => {
-      const div = document.createElement('div');
-      div.className = 'card'; div.id = card.id; 
-      
-      // FIX: Ensure card is positioned relatively and has a high z-index to be clickable
-      div.style.position = 'relative';
-      div.style.zIndex = '50';
-
-      let pStr = card.displayPower;
-      if (playerStats.powerBonus > 0 && card.power !== 8) pStr = `${card.power}+${playerStats.powerBonus}`;
-      let gStr = card.displayGuard;
-      if (playerStats.guardBonus > 0 && card.guard !== 8) gStr = `${card.guard}+${playerStats.guardBonus}`;
-
-      div.innerHTML = `<div class="power">${pStr}</div><div class="action">${ACTION_ICONS[card.actionType]}</div><div class="guard">${gStr}</div>`;
-      div.addEventListener('click', () => {
-        SFX.playClick();
-        if (gameState === 'MAP') movePlayerOnMap(card);
-        else if (gameState === 'COMBAT') playCard(card);
-      });
-      container.appendChild(div);
-    });
-  }
-
-  function updateUI(playerCard, enemyCard) {
-    document.getElementById('player-health-fill').style.width = `${Math.max(0, (playerStats.hp / playerStats.maxHp) * 100)}%`;
-    document.getElementById('enemy-health-fill').style.width = `${Math.max(0, (enemyStats.hp / enemyStats.maxHp) * 100)}%`;
-    document.getElementById('player-hp-text').innerText = `${playerStats.hp} / ${playerStats.maxHp}`;
-    document.getElementById('enemy-hp-text').innerText = `${enemyStats.hp} / ${enemyStats.maxHp}`;
-    document.getElementById('combat-player-level').innerText = `${playerStats.name} (Lvl ${playerStats.level})`;
-
-    if (playerCard && enemyCard) {
-      let pDisplay = playerCard.power === 8 ? 'Z' : (playerCard.power + playerStats.powerBonus);
-      let gDisplay = playerCard.guard === 8 ? 'Z' : (playerCard.guard + playerStats.guardBonus);
-      
-      let pCardHTML = playerCard.power === '?' ? `<p class="placeholder-text">Your Card</p>` : `<div class="card" style="margin: 0; cursor: default;"><div class="power">${pDisplay}</div><div class="action">${ACTION_ICONS[playerCard.actionType]}</div><div class="guard">${gDisplay}</div></div>`;
-      let eCardHTML = enemyCard.power === '?' ? `<p class="placeholder-text">Enemy Card</p>` : `<div class="card" style="margin: 0; cursor: default; border-color: #dc143c;"><div class="power">${enemyCard.displayPower}</div><div class="action">${ACTION_ICONS[enemyCard.actionType]}</div><div class="guard">${enemyCard.displayGuard}</div></div>`;
-      
-      document.getElementById('player-active-card').innerHTML = pCardHTML;
-      document.getElementById('enemy-active-card').innerHTML = eCardHTML;
-    }
-  }
-
-  function movePlayerOnMap(card) {
-    playerPosition = Math.min(storyMap.length - 1, playerPosition + card.power);
-    renderMap();
-    let currentTile = storyMap[playerPosition];
+  function rollDice() {
+    if(gameState !== 'MAP_IDLE') return;
+    gameState = 'MAP_ROLLING';
+    SFX.playClick();
     
-    if (currentTile.type === 'encounter') {
-      startCombat("Saibaman", 40 + (playerPosition * 10), false); 
-    } else if (currentTile.type === 'boss') {
-      startCombat("Raditz", 150, true); 
-    } else if (currentTile.type === 'empty') {
-      triggerMapEvent(); 
+    let diceVisual = document.getElementById('dice-visual');
+    let rollBtn = document.getElementById('roll-btn');
+    let msg = document.getElementById('dice-msg');
+    
+    rollBtn.disabled = true;
+    msg.innerText = "Rolling...";
+    
+    let rolls = 0;
+    const faces = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+    
+    let rollInterval = setInterval(() => {
+        diceVisual.innerText = faces[Math.floor(Math.random()*6)];
+        rolls++;
+        if(rolls > 12) {
+            clearInterval(rollInterval);
+            let finalRoll = Math.floor(Math.random()*6) + 1;
+            diceVisual.innerText = faces[finalRoll-1];
+            msg.innerText = `You rolled a ${finalRoll}! Click a highlighted tile to move.`;
+            SFX.playHit(); 
+            highlightReachable(finalRoll);
+        }
+    }, 50);
+  }
+
+  // BFS to find valid exact landing spots
+  function findReachable(startId, steps) {
+    let currentSet = new Set([startId]);
+    for (let i = 0; i < steps; i++) {
+        let nextStep = new Set();
+        for (let id of currentSet) {
+            let node = mapNodes[id];
+            if (node.next.length === 0) {
+                // Dead end / Boss - you stop here even if steps remain
+                nextStep.add(id);
+            } else {
+                for (let nextId of node.next) {
+                    nextStep.add(nextId);
+                }
+            }
+        }
+        currentSet = nextStep;
     }
-    replaceUsedCard(card);
+    return Array.from(currentSet);
+  }
+
+  function highlightReachable(steps) {
+    reachableNodes = findReachable(playerPosition, steps);
+    
+    document.querySelectorAll('.map-tile').forEach(el => el.classList.remove('reachable', 'pulse'));
+    
+    reachableNodes.forEach(id => {
+        let el = document.getElementById(`node-${id}`);
+        if(el) {
+            el.classList.add('reachable', 'pulse');
+            el.onclick = () => {
+                if(gameState === 'MAP_CHOOSE' && reachableNodes.includes(id)) {
+                    moveToNode(id);
+                }
+            };
+        }
+    });
+    gameState = 'MAP_CHOOSE';
+  }
+
+  function moveToNode(id) {
+    SFX.playClick();
+    gameState = 'MAP_MOVING';
+    document.querySelectorAll('.map-tile').forEach(el => {
+        el.classList.remove('reachable', 'pulse');
+        el.onclick = null;
+    });
+    
+    playerPosition = id;
+    let targetNode = mapNodes[id];
+    
+    // Animate Token
+    let token = document.getElementById('player-token');
+    token.style.left = `${targetNode.x + 5}px`; 
+    token.style.top = `${targetNode.y - 20}px`;
+    
+    // Auto-scroll track
+    document.getElementById('board-track-container').scrollLeft = Math.max(0, targetNode.x - 300);
+    document.getElementById('dice-msg').innerText = "Moving...";
+    
+    setTimeout(() => { resolveMapTile(id); }, 650);
+  }
+
+  function resolveMapTile(nodeId) {
+    const node = mapNodes[nodeId];
+    
+    if (node.type === 'encounter') {
+      startCombat("Saibaman", 40 + (nodeId * 5), false); 
+    } 
+    else if (node.type === 'boss') {
+      startCombat("Raditz", 150, true); 
+    } 
+    else if (node.type === 'heal') {
+      playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + 40);
+      playerStats.senzuBeans++;
+      SFX.playHeal();
+      showCustomModal("SAFE ZONE", "You found a rest spot and a Senzu Bean! Recovered 40 HP.", () => {
+          updateInventoryUI(); resetMapIdle();
+      });
+    }
+    else if (node.type === 'powerup') {
+      playerStats.powerBonus += 1;
+      SFX.playLevelUp();
+      showCustomModal("TRAINING GROUNDS", "You completed some intense training! Permanent +1 Power!", () => {
+          resetMapIdle();
+      });
+    }
+    else if (node.type === 'event') {
+      triggerMapEvent(); 
+    } 
+    else {
+      resetMapIdle(); // empty/start
+    }
   }
 
   function triggerMapEvent() {
@@ -614,22 +714,19 @@
     let msg = "";
     if (roll < 0.4) {
       msg = "You found a Senzu Bean hidden in the wasteland!";
-      playerStats.senzuBeans++;
-      SFX.playHeal();
+      playerStats.senzuBeans++; SFX.playHeal();
     } else if (roll < 0.7) {
       msg = "You took a quick rest. Recovered 20 HP.";
-      playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + 20);
-      SFX.playHeal();
+      playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + 20); SFX.playHeal();
     } else {
       msg = "Gravity Chamber Malfunction! You took 15 damage but gained +1 Base Power permanently!";
-      playerStats.hp -= 15;
-      playerStats.powerBonus += 1;
-      SFX.playDamage();
+      playerStats.hp -= 15; playerStats.powerBonus += 1; SFX.playDamage();
     }
     
-    showCustomModal("MAP EVENT!", msg, () => {
-        updateInventoryUI(); renderHand();
+    showCustomModal("RANDOM EVENT", msg, () => {
+        updateInventoryUI(); 
         if (playerStats.hp <= 0) checkWinCondition();
+        else resetMapIdle();
     });
   }
 
@@ -638,7 +735,6 @@
     enemyStats = { name: name, hp: maxHp, maxHp: maxHp, isBoss: isBoss, stage: 1 };
     
     document.getElementById('enemy-name').innerText = name;
-    
     const enemyImg = document.getElementById('enemy-portrait');
     enemyImg.src = PORTRAITS[name] || `https://placehold.co/150x150/228B22/fff?text=${name}`;
     enemyImg.onerror = function() { this.src = `https://placehold.co/150x150/228B22/fff?text=${name}`; };
@@ -646,30 +742,47 @@
 
     document.getElementById('map-arena').classList.add('hidden');
     document.getElementById('combat-arena').classList.remove('hidden');
-    updateLog(`You encountered ${name}! Select a card to fight.`);
+    document.getElementById('hand-title').classList.remove('hidden');
+    document.getElementById('player-hand').classList.remove('hidden');
     
+    updateLog(`You encountered ${name}! Select a card to fight.`);
     updateUI({power: '?', actionType: 'melee', guard: '?'}, {power: '?', actionType: 'melee', guard: '?'}); 
     updateInventoryUI();
   }
 
   function endCombat() {
-    gameState = 'MAP';
     document.getElementById('combat-arena').classList.add('hidden');
     document.getElementById('map-arena').classList.remove('hidden');
-    renderMap(); renderHand(); updateInventoryUI();
+    resetMapIdle(); updateInventoryUI();
   }
 
   function handleLevelUp() {
     SFX.playLevelUp();
     playerStats.level += 1; playerStats.maxHp += 20; playerStats.hp = playerStats.maxHp; playerStats.powerBonus += 1; 
     
-    let msg = `${playerStats.name} grew to Level ${playerStats.level}!\nMax HP is now ${playerStats.maxHp}!\nBase Power permanently boosted by +1!`;
-    showCustomModal("LEVEL UP!", msg, () => {
+    showCustomModal("LEVEL UP!", `${playerStats.name} grew to Level ${playerStats.level}!\nMax HP is now ${playerStats.maxHp}!\nBase Power permanently boosted by +1!`, () => {
         endCombat();
     });
   }
 
+  function generateDeck() {
+    let deck = []; let cardCounter = 1;
+    const dist = { 'melee': 15, 'ki_blast': 10, 'defend': 8, 'recover': 5, 'special': 2 };
+    for (const [action, count] of Object.entries(dist)) {
+      for (let i = 0; i < count; i++) {
+        deck.push(new Card(`DBZ-${cardCounter.toString().padStart(3, '0')}`, Math.floor(Math.random() * 8) + 1, Math.floor(Math.random() * 8) + 1, action));
+        cardCounter++;
+      }
+    }
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]]; 
+    }
+    return deck;
+  }
+
   function playCard(playerCard) {
+    if(gameState !== 'COMBAT') return;
     let enemyPowerBonus = enemyStats.stage === 2 ? 2 : 0;
     
     let enemyCard = new Card(
@@ -687,14 +800,12 @@
     else if (playerCard.actionType === 'ki_blast') { effectivePower += 2; logMsg += "Ki Blast powers up! "; }
     else if (playerCard.actionType === 'recover') {
       let heal = playerCard.power * 5; playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + heal);
-      SFX.playHeal();
-      logMsg = `You healed ${heal} HP! `;
+      SFX.playHeal(); logMsg = `You healed ${heal} HP! `;
     }
 
     if (playerCard.actionType === 'recover') {
       let damage = Math.max(1, enemyCard.power - effectiveGuard); playerStats.hp -= damage;
-      SFX.playDamage();
-      logMsg += `Enemy hits for ${damage} while you heal!`;
+      SFX.playDamage(); logMsg += `Enemy hits for ${damage} while you heal!`;
     } else {
       if (effectivePower > enemyCard.power) {
         let damage = Math.max(1, effectivePower - enemyCard.guard);
@@ -730,19 +841,15 @@
     if (enemyStats.hp <= 0) {
       enemyStats.hp = 0;
       
-      // Multi-stage Boss Trigger
       if (enemyStats.isBoss && enemyStats.stage === 1) {
-        enemyStats.stage = 2;
-        enemyStats.maxHp = 200; 
-        enemyStats.hp = 200;
+        enemyStats.stage = 2; enemyStats.maxHp = 200; enemyStats.hp = 200;
         enemyStats.name = "Enraged Raditz";
         
         SFX.playDamage(); 
         document.getElementById('enemy-name').innerText = enemyStats.name;
         
         const enemyImg = document.getElementById('enemy-portrait');
-        enemyImg.src = PORTRAITS['RaditzStage2'] || `https://placehold.co/150x150/8B0000/fff?text=Enraged+Raditz`;
-        enemyImg.onerror = function() { this.src = `https://placehold.co/150x150/8B0000/fff?text=Enraged+Raditz`; };
+        enemyImg.src = PORTRAITS['RaditzStage2'];
         enemyImg.classList.add('boss-enraged');
         
         updateUI(null, null); 
@@ -776,7 +883,7 @@
     endScreen.classList.remove('hidden');
   }
 
-  // --- INITIAL BOOT ---
+  // --- BOOT ---
   showTitleScreen();
 
 </script>
